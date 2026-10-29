@@ -1,0 +1,10 @@
+{
+  "name": "AFAMS — Attendance & Focus Academic Management System",
+  "short_name": "AFAMS",
+  "description": "Secure attendance, focus and academic operations platform.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#080f1d",
+  "theme_color": "#0c1625"
+}
