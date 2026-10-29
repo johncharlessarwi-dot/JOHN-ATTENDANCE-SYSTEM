@@ -1,76 +1,59 @@
 [
   {
-    "name": "Sign in and load the protected dashboard",
+    "name": "Administrator creates academic structure and course",
     "sanity": true,
     "viewport": "desktop",
     "covers": [
-      "authentication restoration",
-      "protected dashboard",
-      "default student profile"
+      "academic faculties",
+      "departments",
+      "programmes",
+      "courses",
+      "role-based academic setup",
+      "persistent records"
     ],
-    "description": "Checks that a signed-in user receives a protected workspace after startup authentication restoration.",
+    "description": "Creates linked faculty, department, programme and course records, then verifies they remain available after refresh.",
     "steps": [
-      "Open AFAMS signed out",
-      "Sign in using the secure sign-in action",
-      "Return to the application"
+      "Sign in as an Administrator or Super Admin",
+      "Open Academic administration",
+      "Create a faculty, then a department linked to it",
+      "Create a programme linked to the department",
+      "Create a course linked to the programme",
+      "Refresh the module and verify the created records are still listed"
     ],
-    "expected": "The authenticated user sees the dashboard and their own role; protected information is not shown while signed out."
+    "expected": "All four linked academic records are visible after refresh; invalid parent references are rejected."
   },
   {
-    "name": "Create a session and check in once",
-    "viewport": "desktop",
-    "covers": [
-      "lecturer session creation",
-      "time-limited access code",
-      "student check-in",
-      "duplicate check-in prevention",
-      "attendance persistence"
-    ],
-    "description": "Checks the core attendance workflow across lecturer and student accounts.",
-    "setup": [
-      "Sign in as a lecturer whose role was assigned by the owner",
-      "Sign in with a separate student account"
-    ],
-    "steps": [
-      "Create a course attendance session",
-      "Copy its six-character access code",
-      "Submit the code from the student account",
-      "Refresh the student attendance history"
-    ],
-    "expected": "The student has one durable verified attendance record; a repeated check-in is rejected."
-  },
-  {
-    "name": "Reject unauthorized role changes and invalid codes",
+    "name": "Academic administration is read-only for students",
     "viewport": "mobile",
     "covers": [
-      "server-side role authorization",
-      "owner-only role assignment",
-      "invalid attendance code validation",
-      "responsive check-in"
+      "academic role authorization",
+      "student read-only boundary",
+      "mobile academic module"
     ],
-    "description": "Checks authorization boundaries and invalid attendance input on a mobile viewport.",
+    "description": "Verifies a student can view academic records but cannot create or delete institutional structure.",
     "steps": [
-      "Sign in as a student",
-      "Submit an invalid session code",
-      "Attempt to access owner-only role assignment"
+      "Sign in as a Student",
+      "Open Academic administration",
+      "Verify the create form is unavailable",
+      "Attempt to submit an academic record through the visible interface"
     ],
-    "expected": "The invalid code is rejected, no attendance is created, and the student cannot assign roles."
+    "expected": "The student can view permitted academic data but has no create or delete controls."
   },
   {
-    "name": "Review saved attendance and audit events",
+    "name": "Enrollment requires an existing student and course",
     "viewport": "desktop",
     "covers": [
-      "attendance analytics",
-      "session history",
-      "audit trail",
-      "role-scoped data access"
+      "course enrollment",
+      "student identity validation",
+      "duplicate enrollment prevention"
     ],
-    "description": "Checks that saved academic activity appears in permitted dashboard and history views.",
+    "description": "Verifies enrollment links a previously authenticated student to an existing course and rejects duplicate enrollment.",
     "steps": [
-      "Create an attendance session and record a student check-in",
-      "Open dashboard metrics and attendance history",
-      "Open audit trail as the owner account"
+      "Sign in as an Administrator",
+      "Open Academic administration and select Enrollments",
+      "Select an existing course and enter a non-existent student account ID",
+      "Submit the form"
     ],
-    "expected": "Saved activity is reflected in the relevant views and administrator-only audit data is restricted."
+    "expected": "The API rejects the missing student account and no enrollment record is created."
   }
 ]
