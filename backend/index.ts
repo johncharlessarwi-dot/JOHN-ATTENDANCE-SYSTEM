@@ -35,7 +35,12 @@ type AttendanceRecord = {
 const now = () => Date.now();
 const clean = (v: unknown, n = 120) =>
   typeof v === 'string' ? v.trim().slice(0, n) : '';
-const makeCode = () => Math.random().toString(36).slice(2, 8).toUpperCase();
+const makeCode = () => {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const bytes = new Uint8Array(6);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, byte => alphabet[byte % alphabet.length]).join('');
+};
 const isRole = (v: unknown): v is Role =>
   ['student', 'lecturer', 'administrator', 'super_admin'].includes(String(v));
 async function profileFor(user: {
@@ -146,12 +151,9 @@ export const handler = router({
             sessions: sessions.length,
             attendance: attendance.length,
             activeSessions: active.length,
-            attendanceRate: sessions.length
-              ? Math.min(
-                  100,
-                  Math.round((attendance.length / sessions.length) * 100)
-                )
-              : 0,
+            // A valid rate needs enrolled-student and eligible-session denominators.
+            // Until those are linked to attendance, do not publish a misleading percentage.
+            attendanceRate: null,
           },
           sessions: sessions
             .sort((a, b) => b.startsAt - a.startsAt)
