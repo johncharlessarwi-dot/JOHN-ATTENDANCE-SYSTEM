@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import AcademicAdmin from './AcademicAdmin';
 import { auth, api } from '@appdeploy/client';
 import {
   Activity,
@@ -301,6 +302,7 @@ function App() {
     ['Focus Client', Timer],
     ...(admin
       ? [
+          ['Academic administration', BookOpen],
           ['People', Users],
           ['Audit trail', ClipboardList],
         ]
@@ -686,6 +688,7 @@ function App() {
               </div>
             </>
           )}
+          {view === 'Academic administration' && admin && <AcademicAdmin />}
           {view === 'People' && admin && <People onSaved={refresh} />}
           {view === 'Audit trail' && admin && (
             <>
