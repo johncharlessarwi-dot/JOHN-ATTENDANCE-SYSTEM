@@ -1,0 +1,76 @@
+[
+  {
+    "name": "Sign in and load the protected dashboard",
+    "sanity": true,
+    "viewport": "desktop",
+    "covers": [
+      "authentication restoration",
+      "protected dashboard",
+      "default student profile"
+    ],
+    "description": "Checks that a signed-in user receives a protected workspace after startup authentication restoration.",
+    "steps": [
+      "Open AFAMS signed out",
+      "Sign in using the secure sign-in action",
+      "Return to the application"
+    ],
+    "expected": "The authenticated user sees the dashboard and their own role; protected information is not shown while signed out."
+  },
+  {
+    "name": "Create a session and check in once",
+    "viewport": "desktop",
+    "covers": [
+      "lecturer session creation",
+      "time-limited access code",
+      "student check-in",
+      "duplicate check-in prevention",
+      "attendance persistence"
+    ],
+    "description": "Checks the core attendance workflow across lecturer and student accounts.",
+    "setup": [
+      "Sign in as a lecturer whose role was assigned by the owner",
+      "Sign in with a separate student account"
+    ],
+    "steps": [
+      "Create a course attendance session",
+      "Copy its six-character access code",
+      "Submit the code from the student account",
+      "Refresh the student attendance history"
+    ],
+    "expected": "The student has one durable verified attendance record; a repeated check-in is rejected."
+  },
+  {
+    "name": "Reject unauthorized role changes and invalid codes",
+    "viewport": "mobile",
+    "covers": [
+      "server-side role authorization",
+      "owner-only role assignment",
+      "invalid attendance code validation",
+      "responsive check-in"
+    ],
+    "description": "Checks authorization boundaries and invalid attendance input on a mobile viewport.",
+    "steps": [
+      "Sign in as a student",
+      "Submit an invalid session code",
+      "Attempt to access owner-only role assignment"
+    ],
+    "expected": "The invalid code is rejected, no attendance is created, and the student cannot assign roles."
+  },
+  {
+    "name": "Review saved attendance and audit events",
+    "viewport": "desktop",
+    "covers": [
+      "attendance analytics",
+      "session history",
+      "audit trail",
+      "role-scoped data access"
+    ],
+    "description": "Checks that saved academic activity appears in permitted dashboard and history views.",
+    "steps": [
+      "Create an attendance session and record a student check-in",
+      "Open dashboard metrics and attendance history",
+      "Open audit trail as the owner account"
+    ],
+    "expected": "Saved activity is reflected in the relevant views and administrator-only audit data is restricted."
+  }
+]
