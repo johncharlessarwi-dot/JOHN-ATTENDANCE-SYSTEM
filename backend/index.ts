@@ -303,6 +303,129 @@ export const handler = router({
       return json({ ok: true, userId, role });
     },
   ],
+
+  'GET /api/academic': [
+    requireAuth(),
+    async ({ user }) => {
+      try {
+        const p = await profileFor(user!);
+        const [faculties, departments, programmes, courses, semesters, enrollments] = await Promise.all([
+          db.list('afams_faculties', { limit: 200 }),
+          db.list('afams_departments', { limit: 200 }),
+          db.list('afams_programmes', { limit: 200 }),
+          db.list('afams_courses', { limit: 200 }),
+          db.list('afams_semesters', { limit: 100 }),
+          db.list('afams_enrollments', { limit: 200 }),
+        ]);
+        return json({
+          canManage: p.role === 'administrator' || p.role === 'super_admin',
+          faculties: faculties.items,
+          departments: departments.items,
+          programmes: programmes.items,
+          courses: courses.items,
+          semesters: semesters.items,
+          enrollments: p.role === 'student'
+            ? enrollments.items.filter((x: any) => x.studentId === p.userId)
+            : enrollments.items,
+        });
+      } catch (e) {
+        return error(e instanceof Error ? e.message : 'Academic data unavailable.', 500);
+      }
+    },
+  ],
+  'POST /api/academic': [
+    requireAuth(),
+    async ctx => {
+      const denied = await roleGuard(ctx, ['administrator', 'super_admin']);
+      if (denied) return denied;
+      const b = (ctx.body || {}) as Record<string, unknown>;
+      const kind = clean(b.kind, 24);
+      const name = clean(b.name, 120);
+      const p = await profileFor(ctx.user!);
+      const tables: Record<string, string> = {
+        faculties: 'afams_faculties',
+        departments: 'afams_departments',
+        programmes: 'afams_programmes',
+        courses: 'afams_courses',
+        semesters: 'afams_semesters',
+        enrollments: 'afams_enrollments',
+      };
+      const table = tables[kind];
+      if (!table) return error('Unsupported academic record type.', 400);
+      if (kind !== 'enrollments' && name.length < 2)
+        return error('Enter a valid name (at least 2 characters).', 400);
+      const id = 'ac_' + crypto.randomUUID().replace(/-/g, '');
+      const record: Record<string, unknown> = {
+        createdAt: now(),
+        createdBy: p.userId,
+      };
+      if (kind === 'faculties') {
+        Object.assign(record, { name, code: clean(b.code, 20).toUpperCase() });
+      } else if (kind === 'departments') {
+        const facultyId = clean(b.facultyId, 80);
+        const [faculty] = await db.get('afams_faculties', [facultyId]);
+        if (!faculty) return error('Select an existing faculty.', 400);
+        Object.assign(record, { name, code: clean(b.code, 20).toUpperCase(), facultyId });
+      } else if (kind === 'programmes') {
+        const departmentId = clean(b.departmentId, 80);
+        const [department] = await db.get('afams_departments', [departmentId]);
+        if (!department) return error('Select an existing department.', 400);
+        Object.assign(record, { name, code: clean(b.code, 20).toUpperCase(), departmentId, award: clean(b.award, 60) });
+      } else if (kind === 'courses') {
+        const programmeId = clean(b.programmeId, 80);
+        const [programme] = await db.get('afams_programmes', [programmeId]);
+        if (!programme) return error('Select an existing programme.', 400);
+        Object.assign(record, { name, code: clean(b.code, 20).toUpperCase(), programmeId, credits: Math.max(0, Math.min(60, Number(b.credits) || 0)) });
+      } else if (kind === 'semesters') {
+        const startDate = clean(b.startDate, 10);
+        const endDate = clean(b.endDate, 10);
+        if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(startDate) || !/^\\d{4}-\\d{2}-\\d{2}$/.test(endDate) || endDate < startDate)
+          return error('Provide valid semester start and end dates.', 400);
+        Object.assign(record, { name, academicYear: clean(b.academicYear, 20), startDate, endDate });
+      } else {
+        const courseId = clean(b.courseId, 100);
+        const studentId = clean(b.studentId, 100);
+        const [courseRecord] = await db.get('afams_courses', [courseId]);
+        const [student] = await db.get<UserRecord>('afams_users', [studentId]);
+        if (!courseRecord) return error('Select an existing course.', 400);
+        if (!student || student.role !== 'student') return error('Student account was not found. Ask the student to sign in first.', 400);
+        const enrollmentId = 'en_' + courseId + '_' + studentId;
+        const [created] = await db.tx.add(table, [{
+          id: enrollmentId, courseId, studentId, status: 'active', createdAt: now(), createdBy: p.userId,
+        }]);
+        if (!created) return error('This student is already enrolled in this course.', 409);
+        await audit(p.userId, 'Student enrolled in course', courseId + ' · ' + studentId);
+        return json({ ok: true, item: { id: enrollmentId, courseId, studentId, status: 'active' } }, 201);
+      }
+      const [created] = await db.tx.add(table, [{ id, ...record }]);
+      if (!created) return error('Could not save academic record.', 503);
+      await audit(p.userId, 'Academic record created', kind + ' · ' + name);
+      return json({ ok: true, item: { id, ...record } }, 201);
+    },
+  ],
+  'DELETE /api/academic/:kind/:id': [
+    requireAuth(),
+    async ctx => {
+      const denied = await roleGuard(ctx, ['administrator', 'super_admin']);
+      if (denied) return denied;
+      const tables: Record<string, string> = {
+        faculties: 'afams_faculties',
+        departments: 'afams_departments',
+        programmes: 'afams_programmes',
+        courses: 'afams_courses',
+        semesters: 'afams_semesters',
+        enrollments: 'afams_enrollments',
+      };
+      const table = tables[clean(ctx.params.kind, 24)];
+      const id = clean(ctx.params.id, 160);
+      if (!table || !id) return error('Invalid academic record.', 400);
+      const [removed] = await db.delete(table, [id]);
+      if (!removed) return error('Record was not found or could not be removed.', 404);
+      const p = await profileFor(ctx.user!);
+      await audit(p.userId, 'Academic record deleted', ctx.params.kind + ' · ' + id);
+      return json({ ok: true });
+    },
+  ],
   'GET /api/admin/audit': [
     requireAuth(),
     requireAdminEmailAllowlist(ADMIN_EMAILS),
