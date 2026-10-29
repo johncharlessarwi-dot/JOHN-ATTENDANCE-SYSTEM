@@ -57,7 +57,7 @@ type Workspace = {
     sessions: number;
     attendance: number;
     activeSessions: number;
-    attendanceRate: number;
+    attendanceRate: number | null;
   };
   sessions: Session[];
   attendance: Attendance[];
@@ -227,7 +227,7 @@ function App() {
       sessions: 0,
       attendance: 0,
       activeSessions: 0,
-      attendanceRate: 0,
+      attendanceRate: null,
     };
   const filtered = useMemo(
     () =>
@@ -446,7 +446,7 @@ function App() {
                 <Metric
                   icon={<TrendingUp />}
                   label="Attendance rate"
-                  value={stats.attendanceRate + '%'}
+                  value={stats.attendanceRate === null ? '—' : stats.attendanceRate + '%'}
                 />
               </div>
               <div className="columns">
