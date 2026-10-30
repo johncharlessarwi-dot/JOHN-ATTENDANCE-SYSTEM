@@ -253,7 +253,7 @@ export const handler = router({
         studentId: p.userId,
         course: s.course,
         checkedInAt: now(),
-        status: 'Verified',
+        status: 'Pending Verification',
       };
       const [created] = await db.tx.add('afams_attendance', [
         { id, ...record },
@@ -267,11 +267,70 @@ export const handler = router({
       return json(
         {
           ok: true,
-          message: 'Attendance recorded for ' + s.course + '.',
+          message: 'Check-in received for ' + s.course + '. Your lecturer will verify the attendance record.',
           attendance: { id, ...record },
         },
         201
       );
+    },
+  ],
+  'GET /api/attendance/review': [
+    requireAuth(),
+    async ({ user }) => {
+      const p = await profileFor(user!);
+      if (!['lecturer', 'administrator', 'super_admin'].includes(p.role))
+        return error('You do not have permission to review attendance.', 403);
+      const [records, sessions, users] = await Promise.all([
+        db.list<any>('afams_attendance', { limit: 500 }),
+        db.list<any>('afams_sessions', { limit: 300 }),
+        db.list<any>('afams_users', { limit: 500 }),
+      ]);
+      const sessionMap = new Map(sessions.items.map((s: any) => [s.id, s]));
+      const userMap = new Map(users.items.map((u: any) => [u.userId, u]));
+      const visible = records.items.filter((record: any) => {
+        const session = sessionMap.get(record.sessionId) as any;
+        return p.role !== 'lecturer' || session?.createdBy === p.userId;
+      }).map((record: any) => {
+        const student = userMap.get(record.studentId) as any;
+        const session = sessionMap.get(record.sessionId) as any;
+        return {
+          ...record,
+          studentName: student?.name || student?.email || 'Student',
+          sessionLocation: session?.location || '',
+          reviewedBy: record.reviewedBy || null,
+          reviewedAt: record.reviewedAt || null,
+        };
+      }).sort((a: any, b: any) => b.checkedInAt - a.checkedInAt);
+      return json({ attendance: visible });
+    },
+  ],
+  'POST /api/attendance/:id/review': [
+    requireAuth(),
+    async ctx => {
+      const p = await profileFor(ctx.user!);
+      if (!['lecturer', 'administrator', 'super_admin'].includes(p.role))
+        return error('You do not have permission to review attendance.', 403);
+      const id = clean(ctx.params.id, 180);
+      const reviewBody = (ctx.body || {}) as Record<string, unknown>;
+      const decision = clean(reviewBody.status, 20);
+      if (!['Verified', 'Rejected'].includes(decision))
+        return error('Choose Verified or Rejected.', 400);
+      const [record] = await db.get<any>('afams_attendance', [id], { consistent: true });
+      if (!record) return error('Attendance record was not found.', 404);
+      const [session] = await db.get<any>('afams_sessions', [record.sessionId], { consistent: true });
+      if (!session) return error('Related session was not found.', 404);
+      if (p.role === 'lecturer' && session.createdBy !== p.userId)
+        return error('You can only review attendance for your own sessions.', 403);
+      if (record.status !== 'Pending Verification')
+        return error('This attendance record has already been reviewed.', 409);
+      const [updated] = await db.tx.update('afams_attendance', [{
+        id,
+        record: { status: decision, reviewedBy: p.userId, reviewedAt: now() },
+        if: { status: 'Pending Verification' },
+      }], { patch: true });
+      if (!updated) return error('Attendance was reviewed concurrently. Refresh and retry.', 409);
+      await audit(p.userId, 'Attendance ' + decision.toLowerCase(), id + ' · ' + record.course);
+      return json({ ok: true, status: decision });
     },
   ],
   'POST /api/admin/roles': [
