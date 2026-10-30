@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '@appdeploy/client';
+import * as XLSX from 'xlsx';
 import { Download, FileSpreadsheet, RefreshCw, ShieldCheck } from 'lucide-react';
 
 type Role = 'student' | 'lecturer' | 'class_rep' | 'administrator' | 'super_admin';
@@ -53,6 +54,15 @@ export default function AttendanceReports({ role }: { role: Role }) {
     URL.revokeObjectURL(url);
   }
 
+  function exportExcel() {
+    if (!data) return;
+    const rows = data.rows.map(row => ({ 'Attendance ID': row.id, Course: row.course, 'Student ID': row.studentId, 'Checked In At': stamp(row.checkedInAt), Status: row.status, Venue: row.venue, 'GPS Verified': row.locationVerified ? 'Yes' : 'No' }));
+    const sheet = XLSX.utils.json_to_sheet(rows);
+    const book = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(book, sheet, 'Attendance');
+    XLSX.writeFile(book, 'AFAMS-attendance-report.xlsx');
+  }
+
   async function refresh() {
     setBusy(true);
     try { await load(); setMessage('Report refreshed.'); }
@@ -63,7 +73,7 @@ export default function AttendanceReports({ role }: { role: Role }) {
   return <>
     <div className="heading">
       <div><span className="eyebrow">ACADEMIC PERFORMANCE DATA</span><h1>Attendance reports</h1><p>{role === 'student' ? 'Your personal attendance history.' : 'Review attendance outcomes and export records for analysis.'}</p></div>
-      <div className="toolbar-actions"><button className="outline" onClick={refresh}><RefreshCw size={16}/>{busy ? 'Refreshing…' : 'Refresh'}</button><button className="primary" disabled={!data?.rows.length} onClick={exportCsv}><Download size={16}/> Export CSV</button></div>
+      <div className="toolbar-actions"><button className="outline" onClick={refresh}><RefreshCw size={16}/>{busy ? 'Refreshing…' : 'Refresh'}</button><button className="outline" onClick={() => window.print()}><FileSpreadsheet size={16}/> Save PDF</button><button className="outline" disabled={!data?.rows.length} onClick={exportExcel}><Download size={16}/> Export Excel</button><button className="primary" disabled={!data?.rows.length} onClick={exportCsv}><Download size={16}/> Export CSV</button></div>
     </div>
     {message && <p className="message">{message}</p>}
     {data && <>
