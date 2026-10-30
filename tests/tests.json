@@ -33,11 +33,11 @@
     "expected": "A valid in-range check-in is stored as Pending Verification; missing, inaccurate or out-of-range coordinates are rejected."
   },
   {
-    "name": "Lecturer verifies attendance only for own sessions and students cannot publish announcements",
+    "name": "Attendance reports respect role boundaries and export a CSV file",
     "viewport": "desktop",
-    "covers": ["lecturer attendance review queue", "attendance approval", "attendance rejection", "review ownership authorization", "announcement role authorization", "audit trail"],
-    "description": "Verifies lecturer review ownership and that students cannot create or modify staff announcements.",
-    "steps": ["Sign in as a Lecturer and review a pending record from a session they created", "Attempt to review a record from another lecturer's session", "Sign in as a Student and attempt to publish an announcement"],
-    "expected": "Only owned attendance records can be reviewed; students cannot publish announcements."
+    "covers": ["attendance analytics", "role-scoped report data", "course-level breakdown", "CSV export", "GPS verification reporting"],
+    "description": "Verifies students see only their own records, lecturers see records for their sessions, administrators see institutional records and users can export visible rows to CSV.",
+    "steps": ["Sign in as a user and open Attendance reports", "Review the summary and course breakdown", "Export CSV", "Open the downloaded CSV and compare its rows with the visible report"],
+    "expected": "The report is scoped to the signed-in user's role and the CSV contains the same visible records and status fields."
   }
 ]
