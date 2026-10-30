@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { api } from '@appdeploy/client';
 import { CalendarDays, Clock3, MapPin, Plus, RefreshCw, Trash2 } from 'lucide-react';
 
-type Role = 'student' | 'lecturer' | 'administrator' | 'super_admin';
+type Role = 'student' | 'lecturer' | 'class_rep' | 'administrator' | 'super_admin';
 type Entry = {
   id: string;
   courseId: string;
