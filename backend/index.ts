@@ -487,6 +487,63 @@ export const handler = router({
       return json({ ok: true });
     },
   ],
+  'GET /api/announcements': [
+    requireAuth(),
+    async ({ user }) => {
+      const p = await profileFor(user!);
+      const r = await db.list<any>('afams_announcements', { limit: 200 });
+      const announcements = r.items.filter((item: any) =>
+        item.status === 'published' &&
+        (!item.expiresAt || item.expiresAt > now()) &&
+        (item.audience === 'all' ||
+          (item.audience === 'students' && p.role === 'student') ||
+          (item.audience === 'lecturers' && p.role === 'lecturer') ||
+          (item.audience === 'staff' && ['lecturer', 'administrator', 'super_admin'].includes(p.role)))
+      ).sort((a: any, b: any) => b.createdAt - a.createdAt);
+      return json({ announcements });
+    },
+  ],
+  'POST /api/announcements': [
+    requireAuth(),
+    async ctx => {
+      const denied = await roleGuard(ctx, ['lecturer', 'administrator', 'super_admin']);
+      if (denied) return denied;
+      const b = (ctx.body || {}) as Record<string, unknown>;
+      const title = clean(b.title, 120);
+      const body = clean(b.body, 3000);
+      const audience = clean(b.audience, 20) || 'all';
+      if (title.length < 3 || body.length < 5)
+        return error('Enter a title and announcement message.', 400);
+      if (!['all', 'students', 'lecturers', 'staff'].includes(audience))
+        return error('Choose a valid announcement audience.', 400);
+      const p = await profileFor(ctx.user!);
+      const id = 'an_' + crypto.randomUUID().replace(/-/g, '');
+      const item = {
+        id, title, body, audience, status: 'published',
+        createdAt: now(), createdBy: p.userId,
+        authorName: p.name || 'Campus staff',
+      };
+      const [created] = await db.tx.add('afams_announcements', [item]);
+      if (!created) return error('Could not publish announcement.', 503);
+      await audit(p.userId, 'Announcement published', title);
+      return json({ ok: true, announcement: item }, 201);
+    },
+  ],
+  'DELETE /api/announcements/:id': [
+    requireAuth(),
+    async ctx => {
+      const p = await profileFor(ctx.user!);
+      const id = clean(ctx.params.id, 120);
+      const [item] = await db.get<any>('afams_announcements', [id], { consistent: true });
+      if (!item) return error('Announcement was not found.', 404);
+      if (!['administrator', 'super_admin'].includes(p.role) && item.createdBy !== p.userId)
+        return error('You can only remove your own announcements.', 403);
+      const [removed] = await db.delete('afams_announcements', [id]);
+      if (!removed) return error('Could not remove announcement.', 503);
+      await audit(p.userId, 'Announcement deleted', item.title);
+      return json({ ok: true });
+    },
+  ],
   'GET /api/timetable': [
     requireAuth(),
     async ({ user }) => {
