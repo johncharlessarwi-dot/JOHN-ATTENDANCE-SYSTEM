@@ -567,6 +567,43 @@ export const handler = router({
       return json({ ok: true, focusStatus: patch.focusStatus || record.focusStatus, interruptions, attendanceStatus: patch.status || record.status });
     },
   ],
+  'GET /api/gamification': [
+    requireAuth(),
+    async ({ user }) => {
+      const p = await profileFor(user!);
+      const [attendance, users] = await Promise.all([
+        db.list<any>('afams_attendance', { limit: 2000 }),
+        db.list<any>('afams_users', { limit: 1000 }),
+      ]);
+      const verified = attendance.items.filter((item: any) => item.status === 'Verified');
+      const totals = new Map<string, number>();
+      const dates = new Map<string, Set<string>>();
+      for (const item of verified) {
+        totals.set(item.studentId, (totals.get(item.studentId) || 0) + 1);
+        const day = new Date(item.checkedInAt).toISOString().slice(0, 10);
+        const set = dates.get(item.studentId) || new Set<string>();
+        set.add(day);
+        dates.set(item.studentId, set);
+      }
+      const learners = users.items.filter((u: any) => u.role === 'student').map((u: any) => {
+        const count = totals.get(u.userId) || 0;
+        const badges = [];
+        if (count >= 1) badges.push('First Class');
+        if (count >= 5) badges.push('Campus Regular');
+        if (count >= 20) badges.push('Attendance Champion');
+        if (count >= 50) badges.push('Learning Legend');
+        return { userId: u.userId, name: u.name || 'Student', verifiedAttendance: count, points: count * 10, badges };
+      }).sort((a: any, b: any) => b.points - a.points || a.name.localeCompare(b.name));
+      const current = learners.find((u: any) => u.userId === p.userId) || {
+        userId: p.userId, name: p.name || 'Student', verifiedAttendance: 0, points: 0, badges: [],
+      };
+      return json({
+        current,
+        leaderboard: learners.slice(0, 10).map((u: any, index: number) => ({ rank: index + 1, name: u.name, points: u.points, badges: u.badges.length })),
+        scoring: '10 points per lecturer-verified attendance record. Rejected and pending records do not earn points.',
+      });
+    },
+  ],
   'POST /api/ai/assistant': [
     requireAuth(),
     async ctx => {
