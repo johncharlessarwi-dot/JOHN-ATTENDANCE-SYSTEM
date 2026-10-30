@@ -514,6 +514,48 @@ export const handler = router({
       return json({ ok: true });
     },
   ],
+  'GET /api/reports/attendance': [
+    requireAuth(),
+    async ({ user }) => {
+      const p = await profileFor(user!);
+      const [attendance, sessions] = await Promise.all([
+        db.list<any>('afams_attendance', { limit: 1000 }),
+        db.list<any>('afams_sessions', { limit: 500 }),
+      ]);
+      const sessionMap = new Map(sessions.items.map((s: any) => [s.id, s]));
+      const rows = attendance.items.filter((record: any) => {
+        const session = sessionMap.get(record.sessionId) as any;
+        if (p.role === 'student') return record.studentId === p.userId;
+        if (p.role === 'lecturer') return session?.createdBy === p.userId;
+        return true;
+      }).map((record: any) => {
+        const session = sessionMap.get(record.sessionId) as any;
+        return {
+          ...record,
+          venue: session?.location || '',
+          sessionStartedAt: session?.startsAt || record.checkedInAt,
+          locationVerified: Boolean(record.locationVerified),
+        };
+      }).sort((a: any, b: any) => b.checkedInAt - a.checkedInAt);
+      const summary = {
+        total: rows.length,
+        verified: rows.filter((r: any) => r.status === 'Verified').length,
+        pending: rows.filter((r: any) => r.status === 'Pending Verification').length,
+        rejected: rows.filter((r: any) => r.status === 'Rejected').length,
+        gpsVerified: rows.filter((r: any) => r.locationVerified).length,
+      };
+      const courseMap = new Map<string, { course: string; total: number; verified: number; pending: number; rejected: number }>();
+      for (const row of rows) {
+        const item = courseMap.get(row.course) || { course: row.course, total: 0, verified: 0, pending: 0, rejected: 0 };
+        item.total += 1;
+        if (row.status === 'Verified') item.verified += 1;
+        if (row.status === 'Pending Verification') item.pending += 1;
+        if (row.status === 'Rejected') item.rejected += 1;
+        courseMap.set(row.course, item);
+      }
+      return json({ summary, byCourse: Array.from(courseMap.values()).sort((a, b) => a.course.localeCompare(b.course)), rows });
+    },
+  ],
   'GET /api/announcements': [
     requireAuth(),
     async ({ user }) => {
