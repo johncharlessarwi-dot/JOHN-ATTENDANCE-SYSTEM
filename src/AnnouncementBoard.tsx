@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@appdeploy/client';
 import { Bell, Megaphone, Plus, RefreshCw, Trash2 } from 'lucide-react';
 
-type Role = 'student' | 'lecturer' | 'administrator' | 'super_admin';
+type Role = 'student' | 'lecturer' | 'class_rep' | 'administrator' | 'super_admin';
 type Announcement = {
   id: string;
   title: string;
