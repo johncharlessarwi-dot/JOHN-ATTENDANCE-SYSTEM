@@ -247,8 +247,7 @@ export const handler = router({
           message: 'Check-in received for ' + s.course + '. Your lecturer will verify the attendance record.',
           attendance: { id, ...record },
         },
-        201      );
-    },
+        201      );    },
   ],
   'GET /api/attendance/review': [
     requireAuth(),
@@ -497,8 +496,7 @@ export const handler = router({
       if (decision === 'verified') {
         const [users] = await Promise.all([db.list<any>('afams_users', { limit: 500 })]);
         const duplicate = users.items.find((x: any) =>          x.userId !== student.userId && String(x.registrationNumber || '').toUpperCase() === String(request.registrationNumber).toUpperCase()
-        );
-        if (duplicate) return error('This registration number is already assigned to another student.', 409);
+        );        if (duplicate) return error('This registration number is already assigned to another student.', 409);
         const [updatedStudent] = await db.tx.update('afams_users', [{
           id: student.userId,
           record: {
@@ -607,7 +605,7 @@ export const handler = router({
       } else if (kind === 'academicYears') {
         const startDate = clean(b.startDate, 10);
         const endDate = clean(b.endDate, 10);
-        if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(startDate) || !/^\\d{4}-\\d{2}-\\d{2}$/.test(endDate) || endDate < startDate)
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate) || endDate < startDate)
           return error('Provide valid academic-year start and end dates.', 400);
         const existingYears = await db.list<any>('afams_academic_years', { limit: 200 });
         if (existingYears.items.some((x: any) => x.name.toLowerCase() === name.toLowerCase()))
@@ -632,7 +630,7 @@ export const handler = router({
       } else if (kind === 'semesters') {
         const startDate = clean(b.startDate, 10);
         const endDate = clean(b.endDate, 10);
-        if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(startDate) || !/^\\d{4}-\\d{2}-\\d{2}$/.test(endDate) || endDate < startDate)
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate) || endDate < startDate)
           return error('Provide valid semester start and end dates.', 400);
         Object.assign(record, { name, academicYear: clean(b.academicYear, 20), startDate, endDate });
       } else {
@@ -747,8 +745,7 @@ export const handler = router({
   ],
   'POST /api/class-rep/assignments': [
     requireAuth(),
-    async ctx => {
-      const denied = await roleGuard(ctx, ['administrator', 'super_admin']);
+    async ctx => {      const denied = await roleGuard(ctx, ['administrator', 'super_admin']);
       if (denied) return denied;
       const b = (ctx.body || {}) as Record<string, unknown>;
       const userId = clean(b.userId, 100), courseId = clean(b.courseId, 100);
@@ -997,8 +994,7 @@ export const handler = router({
         ]);
         const enrolled = new Set(enrollments.items.filter((x: any)=>x.studentId===p.userId&&x.status==='active').map((x: any)=>x.courseId));
         const representative = new Set(assignments.items.filter((x: any)=>x.userId===p.userId).map((x: any)=>x.courseId));
-        const visible = timetable.items.filter((x: any)=>p.role==='student'?enrolled.has(x.courseId):p.role==='lecturer'?x.lecturerId===p.userId:p.role==='class_rep'?representative.has(x.courseId):true);
-        return json({ timetable: visible.sort((a: any,b: any)=>String(a.dayOfWeek).localeCompare(String(b.dayOfWeek))||String(a.startTime).localeCompare(String(b.startTime))), canManage: ['lecturer','administrator','super_admin'].includes(p.role) });
+        const visible = timetable.items.filter((x: any)=>p.role==='student'?enrolled.has(x.courseId):p.role==='lecturer'?x.lecturerId===p.userId:p.role==='class_rep'?representative.has(x.courseId):true);        return json({ timetable: visible.sort((a: any,b: any)=>String(a.dayOfWeek).localeCompare(String(b.dayOfWeek))||String(a.startTime).localeCompare(String(b.startTime))), canManage: ['lecturer','administrator','super_admin'].includes(p.role) });
       } catch (e) { return error(e instanceof Error ? e.message : 'Timetable unavailable.', 500); }
     },
   ],
@@ -1016,8 +1012,8 @@ export const handler = router({
       const semesterId = clean(b.semesterId, 100);
       if (!/^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)$/.test(dayOfWeek))
         return error('Choose a valid day of the week.', 400);
-      if (!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(startTime) ||
-          !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(endTime) || endTime <= startTime)
+      if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(startTime) ||
+          !/^([01]\d|2[0-3]):[0-5]\d$/.test(endTime) || endTime <= startTime)
         return error('Provide a valid time range; end must be after start.', 400);
       if (!courseId || !venue) return error('Select a course and enter a venue.', 400);
       const [courseRecord] = await db.get('afams_courses', [courseId]);
