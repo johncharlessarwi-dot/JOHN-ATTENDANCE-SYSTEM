@@ -3,6 +3,7 @@ import AcademicAdmin from './AcademicAdmin';
 import Timetable from './Timetable';
 import AttendanceReview from './AttendanceReview';
 import AnnouncementBoard from './AnnouncementBoard';
+import AttendanceReports from './AttendanceReports';
 import { QRCodeSVG } from 'qrcode.react';
 import { auth, api } from '@appdeploy/client';
 import {
@@ -339,6 +340,7 @@ function App() {
     ['Sessions', CalendarDays],
     ['Timetable', CalendarDays],
     ['Announcements', Bell],
+    ['Reports', ClipboardList],
     ['Focus Client', Timer],
     ...(admin
       ? [
@@ -732,6 +734,7 @@ function App() {
           {view === 'Academic administration' && admin && <AcademicAdmin />}
           {view === 'Timetable' && <Timetable role={role} />}
           {view === 'Announcements' && <AnnouncementBoard role={role} />}
+          {view === 'Reports' && <AttendanceReports role={role} />}
           {view === 'People' && admin && <People onSaved={refresh} />}
           {view === 'Audit trail' && admin && (
             <>
