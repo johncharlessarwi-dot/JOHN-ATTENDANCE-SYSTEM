@@ -5,6 +5,7 @@ import {
   requireAuth,
   requireAdminEmailAllowlist,
   db,
+  ai,
 } from '@appdeploy/sdk';
 const ADMIN_EMAILS = ['johncharlessarwi@gmail.com'];
 type Role = 'student' | 'lecturer' | 'administrator' | 'super_admin';
@@ -564,6 +565,74 @@ export const handler = router({
       if (!updated) return error('Focus state changed concurrently. Refresh and retry.', 409);
       await audit(p.userId, 'Focus ' + eventType, session.course + ' · ' + policy);
       return json({ ok: true, focusStatus: patch.focusStatus || record.focusStatus, interruptions, attendanceStatus: patch.status || record.status });
+    },
+  ],
+  'POST /api/ai/assistant': [
+    requireAuth(),
+    async ctx => {
+      const p = await profileFor(ctx.user!);
+      const b = (ctx.body || {}) as Record<string, unknown>;
+      const question = clean(b.question, 1200);
+      if (question.length < 3) return error('Enter an academic question.', 400);
+      const [attendance, enrollments, sessions] = await Promise.all([
+        db.list<any>('afams_attendance', { limit: 300 }),
+        db.list<any>('afams_enrollments', { limit: 300 }),
+        db.list<any>('afams_sessions', { limit: 300 }),
+      ]);
+      const ownSessions = sessions.items.filter((s: any) =>
+        p.role === 'student' ? s.status === 'active' || s.createdBy === p.userId :
+        p.role === 'lecturer' ? s.createdBy === p.userId : true
+      );
+      const ownSessionIds = new Set(ownSessions.map((s: any) => s.id));
+      const visibleAttendance = attendance.items.filter((r: any) =>
+        p.role === 'student' ? r.studentId === p.userId : ownSessionIds.has(r.sessionId)
+      );
+      const visibleEnrollments = p.role === 'student'
+        ? enrollments.items.filter((r: any) => r.studentId === p.userId)
+        : [];
+      const context = {
+        role: p.role,
+        enrolledCourses: visibleEnrollments.map((r: any) => r.courseId),
+        attendance: {
+          total: visibleAttendance.length,
+          verified: visibleAttendance.filter((r: any) => r.status === 'Verified').length,
+          pending: visibleAttendance.filter((r: any) => r.status === 'Pending Verification').length,
+          rejected: visibleAttendance.filter((r: any) => r.status === 'Rejected').length,
+        },
+        activeClasses: ownSessions.filter((s: any) => s.status === 'active').map((s: any) => s.course).slice(0, 20),
+      };
+      try {
+        const result = await ai.generate({
+          system: 'You are AFAMS Academic Assistant. Give accurate, supportive academic guidance. Use the supplied AFAMS context only for claims about the user records. Never invent grades, attendance, courses, university policies, deadlines or institutional facts. Clearly say when information is not available. Explain concepts step by step when asked. Do not make attendance or academic record changes.',
+          prompt: 'AFAMS user context: ' + JSON.stringify(context) + '\nUser question: ' + question,
+          maxTokens: 1000,
+          thinkingMode: 'FAST',
+        });
+        return json({ answer: result.text });
+      } catch (e) {
+        return error(e instanceof Error ? e.message : 'Academic assistant is temporarily unavailable.', 503);
+      }
+    },
+  ],
+  'POST /api/ai/quiz': [
+    requireAuth(),
+    async ctx => {
+      const b = (ctx.body || {}) as Record<string, unknown>;
+      const topic = clean(b.topic, 160);
+      const material = clean(b.material, 6000);
+      const count = Math.max(3, Math.min(10, Math.floor(Number(b.count) || 5)));
+      if (topic.length < 2) return error('Enter a quiz topic.', 400);
+      try {
+        const result = await ai.generate({
+          system: 'You are an expert university tutor. Generate clear, fair practice questions from the supplied course topic and notes. Include the correct answer and a brief explanation after each question. If notes are provided, prioritize them and do not introduce unsupported course-specific facts. Label the result as practice material, not an official examination.',
+          prompt: 'Create ' + count + ' multiple-choice practice questions about: ' + topic + '\nCourse material / notes:\n' + (material || 'No notes supplied; use general established knowledge for this topic.') + '\nFor each question provide A-D options, the correct answer and a concise explanation.',
+          maxTokens: 2200,
+          thinkingMode: 'FAST',
+        });
+        return json({ quiz: result.text });
+      } catch (e) {
+        return error(e instanceof Error ? e.message : 'Quiz generation is temporarily unavailable.', 503);
+      }
     },
   ],
   'GET /api/reports/attendance': [
