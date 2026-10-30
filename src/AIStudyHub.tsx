@@ -16,6 +16,8 @@ export default function AIStudyHub() {
   const [busy, setBusy] = useState(false);
   const [quizBusy, setQuizBusy] = useState(false);
   const [message, setMessage] = useState('');
+  const [engagementReview, setEngagementReview] = useState('');
+  const [reviewBusy, setReviewBusy] = useState(false);
 
   async function ask(e: FormEvent) {
     e.preventDefault();
@@ -32,6 +34,20 @@ export default function AIStudyHub() {
       setMessage(e?.response?.data?.error || e.message || 'Assistant request failed.');
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function runEngagementReview() {
+    setReviewBusy(true);
+    setMessage('');
+    setEngagementReview('');
+    try {
+      const response = await api.post('/api/ai/engagement-review', {});
+      setEngagementReview(response.data.review || 'No review was returned.');
+    } catch (e: any) {
+      setMessage(e?.response?.data?.error || e.message || 'Engagement review failed.');
+    } finally {
+      setReviewBusy(false);
     }
   }
 
@@ -73,6 +89,12 @@ export default function AIStudyHub() {
         </form>
       </section>
     </div>
+    <section className="panel">
+      <div className="panel-title"><div><span className="eyebrow">EARLY-WARNING REVIEW</span><h3>Review my academic engagement</h3></div><Bot color="#43d8c2"/></div>
+      <p className="hint">Uses your recorded attendance, focus interruptions and enrollments only. It does not have access to grades or assignment results.</p>
+      <button className="primary" disabled={reviewBusy} onClick={runEngagementReview}><Sparkles size={16}/>{reviewBusy ? 'Reviewing…' : 'Generate engagement review'}</button>
+      {engagementReview && <pre className="ai-quiz-result">{engagementReview}</pre>}
+    </section>
     {quiz && <section className="panel ai-quiz-result"><div className="panel-title"><div><span className="eyebrow">GENERATED PRACTICE</span><h3>{topic}</h3></div><BookOpenCheck color="#43d8c2"/></div><pre>{quiz}</pre></section>}
   </>;
 }
