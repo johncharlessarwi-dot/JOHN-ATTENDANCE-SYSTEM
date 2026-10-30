@@ -84,6 +84,24 @@ const initials = (s = 'AF') =>
 const stamp = (n: number) =>
   new Date(n).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
 
+function getBrowserPosition(): Promise<{ latitude: number; longitude: number; accuracy: number }> {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error('This browser does not support location sharing.'));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      position => resolve({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracy: position.coords.accuracy,
+      }),
+      () => reject(new Error('Location permission was denied or the device could not determine its position.')),
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  });
+}
+
 function App() {
   const [user, setUser] = useState<any>(null),
     [profile, setProfile] = useState<Profile | null>(null),
@@ -101,6 +119,10 @@ function App() {
     [venue, setVenue] = useState(''),
     [duration, setDuration] = useState('60'),
     [code, setCode] = useState('');
+  const [sessionLocationRequired, setSessionLocationRequired] = useState(false);
+  const [sessionGeo, setSessionGeo] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [checkinGeo, setCheckinGeo] = useState<{ latitude: number; longitude: number; accuracy: number } | null>(null);
+  const [geoMessage, setGeoMessage] = useState('');
   const [minutes, setMinutes] = useState(25),
     [seconds, setSeconds] = useState(1500),
     [running, setRunning] = useState(false);
@@ -189,10 +211,16 @@ function App() {
     setBusy(true);
     setError('');
     try {
+      let classroomPosition = null;
+      if (sessionLocationRequired) classroomPosition = await getBrowserPosition();
       await api.post('/api/sessions', {
         course: course.trim(),
         location: venue.trim(),
         durationMinutes: Number(duration),
+        locationRequired: sessionLocationRequired,
+        latitude: classroomPosition?.latitude,
+        longitude: classroomPosition?.longitude,
+        radiusMeters: 150,
       });
       setSessionOpen(false);
       setCourse('');
@@ -214,10 +242,15 @@ function App() {
     try {
       const r = await api.post('/api/check-in', {
         code: code.trim().toUpperCase(),
+        latitude: checkinGeo?.latitude,
+        longitude: checkinGeo?.longitude,
+        accuracy: checkinGeo?.accuracy,
       });
       setNotice(r.data.message || 'Attendance recorded.');
       setCheckOpen(false);
       setCode('');
+      setCheckinGeo(null);
+      setGeoMessage('');
       await refresh();
     } catch (e: any) {
       setError(e?.response?.data?.error || e?.message || 'Check-in failed.');
@@ -792,6 +825,8 @@ function App() {
                 placeholder="e.g. Lab 03"
               />
             </label>
+            <label className="checkline"><input type="checkbox" checked={sessionLocationRequired} onChange={e => setSessionLocationRequired(e.target.checked)}/> Require GPS geofence verification (150 m)</label>
+            {sessionLocationRequired && <p className="hint">Your browser will ask to share the classroom's current coordinates when you create this session.</p>}
             <label>
               Session duration
               <select
@@ -832,6 +867,8 @@ function App() {
               Codes are time-limited. New check-ins remain pending until reviewed by the lecturer.
             </p>
             <QRScanner onDetected={value => setCode(value)} />
+            <button type="button" className="outline" onClick={async () => { setGeoMessage('Requesting location…'); try { const point = await getBrowserPosition(); setCheckinGeo(point); setGeoMessage('Location captured with ±' + Math.round(point.accuracy) + ' m accuracy.'); } catch (e: any) { setGeoMessage(e.message || 'Could not capture location.'); } }}><MapPin size={16}/> Share my current location</button>
+            {geoMessage && <p className="hint">{geoMessage}</p>}
             <button className="primary wide" disabled={busy}>
               {busy ? 'Verifying…' : 'Verify & check in'}
             </button>
