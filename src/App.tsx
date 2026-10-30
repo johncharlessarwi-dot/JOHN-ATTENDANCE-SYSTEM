@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import AcademicAdmin from './AcademicAdmin';
 import Timetable from './Timetable';
+import AttendanceReview from './AttendanceReview';
+import { QRCodeSVG } from 'qrcode.react';
 import { auth, api } from '@appdeploy/client';
 import {
   Activity,
@@ -299,6 +301,7 @@ function App() {
   const nav = [
     ['Overview', LayoutDashboard],
     ['Attendance', ScanLine],
+    ...(canTeach ? [['Review attendance', ClipboardList]] : []),
     ['Sessions', CalendarDays],
     ['Timetable', CalendarDays],
     ['Focus Client', Timer],
@@ -581,6 +584,7 @@ function App() {
               </section>
             </>
           )}
+          {view === 'Review attendance' && canTeach && <AttendanceReview />}
           {view === 'Attendance' && (
             <>
               <div className="heading">
@@ -822,9 +826,9 @@ function App() {
               />
             </div>
             <p className="hint">
-              Codes are time-limited and each student can check in once per
-              session.
+              Codes are time-limited. New check-ins remain pending until reviewed by the lecturer.
             </p>
+            <QRScanner onDetected={value => setCode(value)} />
             <button className="primary wide" disabled={busy}>
               {busy ? 'Verifying…' : 'Verify & check in'}
             </button>
@@ -833,6 +837,67 @@ function App() {
       )}
     </div>
   );
+}
+function QRScanner({ onDetected }: { onDetected: (value: string) => void }) {
+  const [active, setActive] = useState(false);
+  const [message, setMessage] = useState('');
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const onDetectedRef = useRef(onDetected);
+  useEffect(() => { onDetectedRef.current = onDetected; }, [onDetected]);
+  useEffect(() => {
+    if (!active) return;
+    let stream: MediaStream | null = null;
+    let frame = 0;
+    let stopped = false;
+    async function start() {
+      try {
+        const Detector = (window as any).BarcodeDetector;
+        if (!Detector) {
+          setMessage('QR scanning is not supported by this browser. Enter the six-character code manually.');
+          setActive(false);
+          return;
+        }
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+        if (!videoRef.current || stopped) return;
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+        const detector = new Detector({ formats: ['qr_code'] });
+        const scan = async () => {
+          if (stopped || !videoRef.current) return;
+          try {
+            const codes = await detector.detect(videoRef.current);
+            const value = codes?.[0]?.rawValue?.trim().toUpperCase();
+            if (value && /^[A-Z0-9]{6}$/.test(value)) {
+              onDetectedRef.current(value);
+              setMessage('QR code captured. Submit to verify attendance.');
+              setActive(false);
+              return;
+            }
+          } catch {
+            setMessage('Unable to read this QR code. Adjust the camera or enter the code manually.');
+          }
+          frame = window.requestAnimationFrame(scan);
+        };
+        scan();
+      } catch {
+        setMessage('Camera permission was denied or the camera is unavailable.');
+        setActive(false);
+      }
+    }
+    start();
+    return () => {
+      stopped = true;
+      window.cancelAnimationFrame(frame);
+      stream?.getTracks().forEach(track => track.stop());
+    };
+  }, [active]);
+  return <div className="qr-scanner">
+    <button type="button" className="outline" onClick={() => { setMessage(''); setActive(value => !value); }}>
+      <ScanLine size={16}/>{active ? 'Stop QR scanner' : 'Scan QR with camera'}
+    </button>
+    {active && <video ref={videoRef} muted playsInline />}
+    {message && <small className="hint">{message}</small>}
+  </div>;
 }
 function Metric({ icon, label, value }: any) {
   return (
@@ -861,6 +926,7 @@ function SessionRow({ s }: { s: Session }) {
       <div className="session-code">
         <small>ACCESS CODE</small>
         <b>{s.code}</b>
+        {live && <QRCodeSVG value={s.code} size={72} level="M"/>}
       </div>
       <span className={live ? 'live' : 'closed'}>
         ● {live ? 'LIVE' : 'CLOSED'}
