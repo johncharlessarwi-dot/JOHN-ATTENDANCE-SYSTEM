@@ -33,11 +33,11 @@
     "expected": "The geofence is enforced, focus interruptions are recorded, and Strict or Grace policies apply their configured attendance outcomes."
   },
   {
-    "name": "AI Study Hub answers questions and generates quizzes from course notes",
+    "name": "AI Study Hub answers questions, generates quizzes and reviews engagement",
     "viewport": "desktop",
-    "covers": ["AI academic assistance", "AFAMS user-context grounding", "AI quiz generation", "course-material-based practice", "AI failure handling"],
-    "description": "Verifies authenticated users can ask an academic question and generate practice questions from supplied course material.",
-    "steps": ["Sign in and open AI Study Hub", "Ask the assistant an academic question", "Open the quiz generator and enter a topic with course notes", "Generate a practice quiz"],
-    "expected": "The assistant returns an academic response and the quiz generator returns questions with answers and explanations."
+    "covers": ["AI academic assistance", "AFAMS user-context grounding", "AI quiz generation", "course-material-based practice", "AI early-warning engagement review", "AI failure handling"],
+    "description": "Verifies authenticated students can ask an academic question, generate practice questions and receive a cautious engagement review based only on their recorded AFAMS signals.",
+    "steps": ["Sign in and open AI Study Hub", "Ask the assistant an academic question", "Generate a practice quiz from course notes", "Run the personal engagement review"],
+    "expected": "The assistant returns academic guidance, the quiz contains answers and explanations, and the review distinguishes recorded facts from missing academic data."
   }
 ]
