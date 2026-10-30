@@ -16,6 +16,12 @@ type UserRecord = {
   role: Role;
   createdAt: number;
   updatedAt: number;
+  institutionId?: string;
+  registrationNumber?: string;
+  identityStatus?: 'pending' | 'verified' | 'rejected';
+  verifiedAt?: number;
+  verifiedBy?: string;
+  requestedProgramme?: string;
 };
 type SessionRecord = {
   course: string;
@@ -336,6 +342,202 @@ export const handler = router({
     },
   ],
 
+  'GET /api/institution': [
+    requireAuth(),
+    async ({ user }) => {
+      try {
+        const p = await profileFor(user!);
+        const [institution] = await db.get<any>('afams_institutions', ['primary'], { consistent: true });
+        return json({
+          institution: institution || null,
+          profile: {
+            identityStatus: p.identityStatus || 'not_submitted',
+            registrationNumber: p.registrationNumber || null,
+            institutionId: p.institutionId || null,
+            verifiedAt: p.verifiedAt || null,
+          },
+          canConfigure: p.role === 'super_admin',
+          canReview: p.role === 'administrator' || p.role === 'super_admin',
+        });
+      } catch (e) {
+        return error(e instanceof Error ? e.message : 'Institution data unavailable.', 500);
+      }
+    },
+  ],
+  'POST /api/institution': [
+    requireAuth(),
+    requireAdminEmailAllowlist(ADMIN_EMAILS),
+    async ({ body, user }) => {
+      const b = (body || {}) as Record<string, unknown>;
+      const name = clean(b.name, 140);
+      const code = clean(b.code, 24).toUpperCase();
+      const campus = clean(b.campus, 100);
+      if (name.length < 3 || !/^[A-Z0-9-]{2,24}$/.test(code))
+        return error('Enter an institution name and a code (2–24 letters, numbers or hyphens).', 400);
+      const [existing] = await db.get<any>('afams_institutions', ['primary'], { consistent: true });
+      const record = {
+        name, code, campus,
+        status: 'active',
+        updatedAt: now(),
+        updatedBy: user!.userId,
+        ...(existing ? {} : { createdAt: now(), createdBy: user!.userId }),
+      };
+      if (existing) {
+        const [updated] = await db.tx.update('afams_institutions', [{
+          id: 'primary',
+          record,
+          if: { code: existing.code },
+        }], { patch: true });
+        if (!updated) return error('Institution settings changed concurrently. Refresh and retry.', 409);
+      } else {
+        const [created] = await db.tx.add('afams_institutions', [{ id: 'primary', ...record }]);
+        if (!created) return error('Could not create institution settings.', 503);
+      }
+      await audit(user!.userId, existing ? 'Institution settings updated' : 'Institution configured', name + ' · ' + code);
+      return json({ ok: true, institution: { id: 'primary', ...record } }, existing ? 200 : 201);
+    },
+  ],
+  'POST /api/identity/request': [
+    requireAuth(),
+    async ctx => {
+      const p = await profileFor(ctx.user!);
+      if (p.role !== 'student') return error('Only student accounts can submit student identity verification.', 403);
+      if (p.identityStatus === 'verified') return error('Your student identity is already verified.', 409);
+      const b = (ctx.body || {}) as Record<string, unknown>;
+      const registrationNumber = clean(b.registrationNumber, 30).toUpperCase();
+      const requestedProgramme = clean(b.programme, 120);
+      if (!/^[A-Z0-9/-]{4,30}$/.test(registrationNumber))
+        return error('Enter a valid registration number (4–30 letters, numbers, slash or hyphen).', 400);
+      const [institution] = await db.get<any>('afams_institutions', ['primary'], { consistent: true });
+      if (!institution || institution.status !== 'active')
+        return error('The institution has not configured its identity registry yet.', 409);
+      const [users, requests] = await Promise.all([
+        db.list<any>('afams_users', { limit: 500 }),
+        db.list<any>('afams_identity_requests', { limit: 500 }),
+      ]);
+      const duplicateUser = users.items.find((x: any) =>
+        x.userId !== p.userId && String(x.registrationNumber || '').toUpperCase() === registrationNumber
+      );
+      const duplicateRequest = requests.items.find((x: any) =>
+        x.userId !== p.userId && x.status === 'pending' && String(x.registrationNumber || '').toUpperCase() === registrationNumber
+      );
+      if (duplicateUser || duplicateRequest)
+        return error('That registration number is already linked to another account or pending verification.', 409);
+      const id = 'ir_' + p.userId;
+      const [existing] = await db.get<any>('afams_identity_requests', [id], { consistent: true });
+      const record = {
+        userId: p.userId,
+        institutionId: 'primary',
+        registrationNumber,
+        requestedProgramme,
+        status: 'pending',
+        submittedAt: now(),
+        updatedAt: now(),
+      };
+      if (existing) {
+        if (existing.status === 'pending') return error('Your verification request is already awaiting review.', 409);
+        const [updated] = await db.tx.update('afams_identity_requests', [{
+          id,
+          record,
+          if: { status: existing.status },
+        }], { patch: true });
+        if (!updated) return error('Your request changed concurrently. Refresh and retry.', 409);
+      } else {
+        const [created] = await db.tx.add('afams_identity_requests', [{ id, ...record }]);
+        if (!created) return error('A verification request already exists. Refresh and retry.', 409);
+      }
+      const [updatedProfile] = await db.tx.update('afams_users', [{
+        id: p.userId,
+        record: { identityStatus: 'pending', updatedAt: now() },
+        if: { role: 'student' },
+      }], { patch: true });
+      if (!updatedProfile) return error('Request was saved but profile status could not be updated. Contact an administrator.', 503);
+      await audit(p.userId, 'Student identity submitted', registrationNumber);
+      return json({ ok: true, status: 'pending', message: 'Your registration details have been submitted for institutional verification.' }, 201);
+    },
+  ],
+  'GET /api/identity/requests': [
+    requireAuth(),
+    async ({ user }) => {
+      const p = await profileFor(user!);
+      if (!['administrator', 'super_admin'].includes(p.role))
+        return error('You do not have permission to review identity requests.', 403);
+      const [requests, users] = await Promise.all([
+        db.list<any>('afams_identity_requests', { limit: 500 }),
+        db.list<any>('afams_users', { limit: 500 }),
+      ]);
+      const userMap = new Map(users.items.map((x: any) => [x.userId, x]));
+      const items = requests.items.map((r: any) => {
+        const person = userMap.get(r.userId) as any;
+        return {
+          ...r,
+          studentName: person?.name || person?.email || 'Student account',
+          studentEmail: person?.email || '',
+        };
+      }).sort((a: any, b: any) => Number(b.submittedAt || 0) - Number(a.submittedAt || 0));
+      return json({ requests: items });
+    },
+  ],
+  'POST /api/identity/:id/review': [
+    requireAuth(),
+    async ctx => {
+      const p = await profileFor(ctx.user!);
+      if (!['administrator', 'super_admin'].includes(p.role))
+        return error('You do not have permission to review identity requests.', 403);
+      const id = clean(ctx.params.id, 180);
+      const b = (ctx.body || {}) as Record<string, unknown>;
+      const decision = clean(b.status, 20);
+      const reason = clean(b.reason, 240);
+      if (!['verified', 'rejected'].includes(decision))
+        return error('Choose verified or rejected.', 400);
+      const [request] = await db.get<any>('afams_identity_requests', [id], { consistent: true });
+      if (!request) return error('Identity request was not found.', 404);
+      if (request.status !== 'pending') return error('This request has already been reviewed.', 409);
+      const [student] = await db.get<UserRecord>('afams_users', [request.userId], { consistent: true });
+      if (!student || student.role !== 'student') return error('Student account no longer exists.', 404);
+      if (decision === 'verified') {
+        const [users] = await Promise.all([db.list<any>('afams_users', { limit: 500 })]);
+        const duplicate = users.items.find((x: any) =>
+          x.userId !== student.userId && String(x.registrationNumber || '').toUpperCase() === String(request.registrationNumber).toUpperCase()
+        );
+        if (duplicate) return error('This registration number is already assigned to another student.', 409);
+        const [updatedStudent] = await db.tx.update('afams_users', [{
+          id: student.userId,
+          record: {
+            institutionId: 'primary',
+            registrationNumber: request.registrationNumber,
+            requestedProgramme: request.requestedProgramme || '',
+            identityStatus: 'verified',
+            verifiedAt: now(),
+            verifiedBy: p.userId,
+            updatedAt: now(),
+          },
+          if: { role: 'student' },
+        }], { patch: true });
+        if (!updatedStudent) return error('Student profile changed concurrently. Refresh and retry.', 409);
+      } else {
+        const [updatedStudent] = await db.tx.update('afams_users', [{
+          id: student.userId,
+          record: { identityStatus: 'rejected', updatedAt: now() },
+          if: { role: 'student' },
+        }], { patch: true });
+        if (!updatedStudent) return error('Student profile changed concurrently. Refresh and retry.', 409);
+      }
+      const [updatedRequest] = await db.tx.update('afams_identity_requests', [{
+        id,
+        record: {
+          status: decision,
+          reviewedBy: p.userId,
+          reviewedAt: now(),
+          reviewReason: reason,
+        },
+        if: { status: 'pending' },
+      }], { patch: true });
+      if (!updatedRequest) return error('Request review changed concurrently. Refresh and reconcile the student profile.', 409);
+      await audit(p.userId, 'Student identity ' + decision, request.registrationNumber + ' · ' + request.userId);
+      return json({ ok: true, status: decision });
+    },
+  ],
   'GET /api/academic': [
     requireAuth(),
     async ({ user }) => {

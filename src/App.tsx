@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import AcademicAdmin from './AcademicAdmin';
+import InstitutionIdentity from './InstitutionIdentity';
 import Timetable from './Timetable';
 import AttendanceReview from './AttendanceReview';
 import AnnouncementBoard from './AnnouncementBoard';
@@ -372,6 +373,7 @@ function App() {
     ...(canTeach ? [['Review attendance', ClipboardList]] : []),
     ['Sessions', CalendarDays],
     ['Timetable', CalendarDays],
+    ['Institution & identity', ShieldCheck],
     ['Announcements', Bell],
     ['Reports', ClipboardList],
     ['AI Study Hub', Sparkles],
@@ -778,6 +780,7 @@ function App() {
           )}
           {view === 'Academic administration' && admin && <AcademicAdmin />}
           {view === 'Timetable' && <Timetable role={role} />}
+          {view === 'Institution & identity' && <InstitutionIdentity role={role} />}
           {view === 'Announcements' && <AnnouncementBoard role={role} />}
           {view === 'Reports' && <AttendanceReports role={role} />}
           {view === 'AI Study Hub' && <AIStudyHub />}
