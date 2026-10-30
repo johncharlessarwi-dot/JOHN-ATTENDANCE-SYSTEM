@@ -114,6 +114,7 @@ function App() {
   const [user, setUser] = useState<any>(null),
     [profile, setProfile] = useState<Profile | null>(null),
     [data, setData] = useState<Workspace | null>(null);
+  const [online, setOnline] = useState(navigator.onLine);
   const [loading, setLoading] = useState(true),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
@@ -176,6 +177,12 @@ function App() {
     return () => {
       live = false;
     };
+  }, []);
+  useEffect(() => {
+    const update = () => setOnline(navigator.onLine);
+    window.addEventListener('online', update);
+    window.addEventListener('offline', update);
+    return () => { window.removeEventListener('online', update); window.removeEventListener('offline', update); };
   }, []);
   useEffect(() => {
     if (!monitoringFocus || !focusSessionId) return;
@@ -382,6 +389,7 @@ function App() {
   ];
   return (
     <div className="shell">
+      {!online && <div className="offline-banner">Offline mode: cached app shell only. Sign-in, attendance check-in and API actions need an internet connection.</div>}
       <aside className={'sidebar ' + (mobile ? 'show' : '')}>
         <div className="brand-row">
           <div className="brand">AF</div>
