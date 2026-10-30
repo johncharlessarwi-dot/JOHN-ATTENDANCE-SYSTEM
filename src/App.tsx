@@ -5,6 +5,7 @@ import AttendanceReview from './AttendanceReview';
 import AnnouncementBoard from './AnnouncementBoard';
 import AttendanceReports from './AttendanceReports';
 import AIStudyHub from './AIStudyHub';
+import Achievements from './Achievements';
 import { QRCodeSVG } from 'qrcode.react';
 import { auth, api } from '@appdeploy/client';
 import {
@@ -36,6 +37,7 @@ import {
   AlertCircle,
   Settings,
 } from 'lucide-react';
+import { Trophy } from 'lucide-react';
 
 type Role = 'student' | 'lecturer' | 'administrator' | 'super_admin';
 type Profile = { userId: string; email?: string; name?: string; role: Role };
@@ -362,6 +364,7 @@ function App() {
     ['Announcements', Bell],
     ['Reports', ClipboardList],
     ['AI Study Hub', Sparkles],
+    ['Achievements', Trophy],
     ['Focus Client', Timer],
     ...(admin
       ? [
@@ -764,6 +767,7 @@ function App() {
           {view === 'Announcements' && <AnnouncementBoard role={role} />}
           {view === 'Reports' && <AttendanceReports role={role} />}
           {view === 'AI Study Hub' && <AIStudyHub />}
+          {view === 'Achievements' && <Achievements />}
           {view === 'People' && admin && <People onSaved={refresh} />}
           {view === 'Audit trail' && admin && (
             <>
