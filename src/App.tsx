@@ -4,6 +4,7 @@ import Timetable from './Timetable';
 import AttendanceReview from './AttendanceReview';
 import AnnouncementBoard from './AnnouncementBoard';
 import AttendanceReports from './AttendanceReports';
+import AIStudyHub from './AIStudyHub';
 import { QRCodeSVG } from 'qrcode.react';
 import { auth, api } from '@appdeploy/client';
 import {
@@ -360,6 +361,7 @@ function App() {
     ['Timetable', CalendarDays],
     ['Announcements', Bell],
     ['Reports', ClipboardList],
+    ['AI Study Hub', Sparkles],
     ['Focus Client', Timer],
     ...(admin
       ? [
@@ -761,6 +763,7 @@ function App() {
           {view === 'Timetable' && <Timetable role={role} />}
           {view === 'Announcements' && <AnnouncementBoard role={role} />}
           {view === 'Reports' && <AttendanceReports role={role} />}
+          {view === 'AI Study Hub' && <AIStudyHub />}
           {view === 'People' && admin && <People onSaved={refresh} />}
           {view === 'Audit trail' && admin && (
             <>
