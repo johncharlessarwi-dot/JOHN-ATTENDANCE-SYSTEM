@@ -247,9 +247,7 @@ export const handler = router({
           message: 'Check-in received for ' + s.course + '. Your lecturer will verify the attendance record.',
           attendance: { id, ...record },
         },
-        201
-      );
-    },
+        201      );    },
   ],
   'GET /api/attendance/review': [
     requireAuth(),
@@ -497,10 +495,8 @@ export const handler = router({
       if (!student || student.role !== 'student') return error('Student account no longer exists.', 404);
       if (decision === 'verified') {
         const [users] = await Promise.all([db.list<any>('afams_users', { limit: 500 })]);
-        const duplicate = users.items.find((x: any) =>
-          x.userId !== student.userId && String(x.registrationNumber || '').toUpperCase() === String(request.registrationNumber).toUpperCase()
-        );
-        if (duplicate) return error('This registration number is already assigned to another student.', 409);
+        const duplicate = users.items.find((x: any) =>          x.userId !== student.userId && String(x.registrationNumber || '').toUpperCase() === String(request.registrationNumber).toUpperCase()
+        );        if (duplicate) return error('This registration number is already assigned to another student.', 409);
         const [updatedStudent] = await db.tx.update('afams_users', [{
           id: student.userId,
           record: {
@@ -543,17 +539,20 @@ export const handler = router({
     async ({ user }) => {
       try {
         const p = await profileFor(user!);
-        const [faculties, departments, programmes, courses, semesters, enrollments, assignments] = await Promise.all([
+        const [faculties, departments, programmes, courses, semesters, enrollments, academicYears, campuses, classrooms, assignments] = await Promise.all([
           db.list('afams_faculties', { limit: 200 }),
           db.list('afams_departments', { limit: 200 }),
           db.list('afams_programmes', { limit: 200 }),
           db.list<any>('afams_courses', { limit: 200 }),
           db.list('afams_semesters', { limit: 100 }),
           db.list<any>('afams_enrollments', { limit: 200 }),
+          db.list<any>('afams_academic_years', { limit: 100 }),
+          db.list<any>('afams_campuses', { limit: 200 }),
+          db.list<any>('afams_classrooms', { limit: 500 }),
           p.role === 'class_rep' ? db.list<any>('afams_class_rep_courses', { limit: 500 }) : Promise.resolve({ items: [] as any[] }),
         ]);
         const ids = new Set(assignments.items.filter((x: any) => x.userId === p.userId).map((x: any) => x.courseId));
-        return json({ canManage: p.role === 'administrator' || p.role === 'super_admin', faculties: p.role === 'class_rep' ? [] : faculties.items, departments: p.role === 'class_rep' ? [] : departments.items, programmes: p.role === 'class_rep' ? [] : programmes.items, courses: p.role === 'class_rep' ? courses.items.filter((x: any) => ids.has(x.id)) : courses.items, semesters: p.role === 'class_rep' ? [] : semesters.items, enrollments: p.role === 'student' ? enrollments.items.filter((x: any) => x.studentId === p.userId) : p.role === 'class_rep' ? enrollments.items.filter((x: any) => ids.has(x.courseId) && x.status === 'active') : enrollments.items });
+        return json({ canManage: p.role === 'administrator' || p.role === 'super_admin', faculties: p.role === 'class_rep' ? [] : faculties.items, departments: p.role === 'class_rep' ? [] : departments.items, programmes: p.role === 'class_rep' ? [] : programmes.items, courses: p.role === 'class_rep' ? courses.items.filter((x: any) => ids.has(x.id)) : courses.items, semesters: p.role === 'class_rep' ? [] : semesters.items, academicYears: p.role === 'class_rep' ? [] : academicYears.items, campuses: p.role === 'class_rep' ? [] : campuses.items, classrooms: p.role === 'class_rep' ? [] : classrooms.items, enrollments: p.role === 'student' ? enrollments.items.filter((x: any) => x.studentId === p.userId) : p.role === 'class_rep' ? enrollments.items.filter((x: any) => ids.has(x.courseId) && x.status === 'active') : enrollments.items });
       } catch (e) { return error(e instanceof Error ? e.message : 'Academic data unavailable.', 500); }
     },
   ],
@@ -572,6 +571,9 @@ export const handler = router({
         programmes: 'afams_programmes',
         courses: 'afams_courses',
         semesters: 'afams_semesters',
+        academicYears: 'afams_academic_years',
+        campuses: 'afams_campuses',
+        classrooms: 'afams_classrooms',
         enrollments: 'afams_enrollments',
       };
       const table = tables[kind];
@@ -600,10 +602,35 @@ export const handler = router({
         const [programme] = await db.get('afams_programmes', [programmeId]);
         if (!programme) return error('Select an existing programme.', 400);
         Object.assign(record, { name, code: clean(b.code, 20).toUpperCase(), programmeId, credits: Math.max(0, Math.min(60, Number(b.credits) || 0)) });
+      } else if (kind === 'academicYears') {
+        const startDate = clean(b.startDate, 10);
+        const endDate = clean(b.endDate, 10);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate) || endDate < startDate)
+          return error('Provide valid academic-year start and end dates.', 400);
+        const existingYears = await db.list<any>('afams_academic_years', { limit: 200 });
+        if (existingYears.items.some((x: any) => x.name.toLowerCase() === name.toLowerCase()))
+          return error('An academic year with this name already exists.', 409);
+        Object.assign(record, { name, startDate, endDate, status: b.status === 'archived' ? 'archived' : 'active' });
+      } else if (kind === 'campuses') {
+        const institutionId = 'primary';
+        const [institution] = await db.get<any>('afams_institutions', [institutionId]);
+        const code = clean(b.code, 24).toUpperCase();
+        if (!institution || institution.status !== 'active') return error('Configure the institution registry before adding campuses.', 409);
+        if (!/^[A-Z0-9-]{2,24}$/.test(code)) return error('Enter a campus code using 2–24 letters, numbers or hyphens.', 400);
+        const existingCampuses = await db.list<any>('afams_campuses', { limit: 500 });
+        if (existingCampuses.items.some((x: any) => String(x.code).toUpperCase() === code)) return error('That campus code already exists.', 409);
+        Object.assign(record, { name, code, institutionId, address: clean(b.address, 180), status: 'active' });
+      } else if (kind === 'classrooms') {
+        const campusId = clean(b.campusId, 100);
+        const [campus] = await db.get<any>('afams_campuses', [campusId]);
+        const capacity = Number(b.capacity);
+        if (!campus || campus.status !== 'active') return error('Select an active campus.', 400);
+        if (!Number.isInteger(capacity) || capacity < 1 || capacity > 5000) return error('Classroom capacity must be between 1 and 5000.', 400);
+        Object.assign(record, { name, campusId, building: clean(b.building, 100), roomCode: clean(b.roomCode, 40).toUpperCase(), capacity, status: 'active' });
       } else if (kind === 'semesters') {
         const startDate = clean(b.startDate, 10);
         const endDate = clean(b.endDate, 10);
-        if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(startDate) || !/^\\d{4}-\\d{2}-\\d{2}$/.test(endDate) || endDate < startDate)
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate) || endDate < startDate)
           return error('Provide valid semester start and end dates.', 400);
         Object.assign(record, { name, academicYear: clean(b.academicYear, 20), startDate, endDate });
       } else {
@@ -638,6 +665,9 @@ export const handler = router({
         programmes: 'afams_programmes',
         courses: 'afams_courses',
         semesters: 'afams_semesters',
+        academicYears: 'afams_academic_years',
+        campuses: 'afams_campuses',
+        classrooms: 'afams_classrooms',
         enrollments: 'afams_enrollments',
       };
       const table = tables[clean(ctx.params.kind, 24)];
@@ -715,8 +745,7 @@ export const handler = router({
   ],
   'POST /api/class-rep/assignments': [
     requireAuth(),
-    async ctx => {
-      const denied = await roleGuard(ctx, ['administrator', 'super_admin']);
+    async ctx => {      const denied = await roleGuard(ctx, ['administrator', 'super_admin']);
       if (denied) return denied;
       const b = (ctx.body || {}) as Record<string, unknown>;
       const userId = clean(b.userId, 100), courseId = clean(b.courseId, 100);
@@ -747,8 +776,7 @@ export const handler = router({
       const assigned = courses.items.filter((c: any) => ids.has(c.id));
       const names = new Set(assigned.flatMap((c: any) => [c.name, c.code].filter(Boolean)));
       const enrolled = enrollments.items.filter((e: any) => ids.has(e.courseId) && e.status === 'active');
-      const studentIds = new Set(enrolled.map((e: any) => e.studentId));
-      const userMap = new Map(users.items.filter((u: any) => studentIds.has(u.userId)).map((u: any) => [u.userId, u]));
+      const studentIds = new Set(enrolled.map((e: any) => e.studentId));      const userMap = new Map(users.items.filter((u: any) => studentIds.has(u.userId)).map((u: any) => [u.userId, u]));
       const classSessions = sessions.items.filter((x: any) => names.has(x.course));
       const sessionIds = new Set(classSessions.map((x: any) => x.id));
       const records = attendance.items.filter((x: any) => sessionIds.has(x.sessionId));
@@ -966,8 +994,7 @@ export const handler = router({
         ]);
         const enrolled = new Set(enrollments.items.filter((x: any)=>x.studentId===p.userId&&x.status==='active').map((x: any)=>x.courseId));
         const representative = new Set(assignments.items.filter((x: any)=>x.userId===p.userId).map((x: any)=>x.courseId));
-        const visible = timetable.items.filter((x: any)=>p.role==='student'?enrolled.has(x.courseId):p.role==='lecturer'?x.lecturerId===p.userId:p.role==='class_rep'?representative.has(x.courseId):true);
-        return json({ timetable: visible.sort((a: any,b: any)=>String(a.dayOfWeek).localeCompare(String(b.dayOfWeek))||String(a.startTime).localeCompare(String(b.startTime))), canManage: ['lecturer','administrator','super_admin'].includes(p.role) });
+        const visible = timetable.items.filter((x: any)=>p.role==='student'?enrolled.has(x.courseId):p.role==='lecturer'?x.lecturerId===p.userId:p.role==='class_rep'?representative.has(x.courseId):true);        return json({ timetable: visible.sort((a: any,b: any)=>String(a.dayOfWeek).localeCompare(String(b.dayOfWeek))||String(a.startTime).localeCompare(String(b.startTime))), canManage: ['lecturer','administrator','super_admin'].includes(p.role) });
       } catch (e) { return error(e instanceof Error ? e.message : 'Timetable unavailable.', 500); }
     },
   ],
@@ -985,8 +1012,8 @@ export const handler = router({
       const semesterId = clean(b.semesterId, 100);
       if (!/^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)$/.test(dayOfWeek))
         return error('Choose a valid day of the week.', 400);
-      if (!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(startTime) ||
-          !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(endTime) || endTime <= startTime)
+      if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(startTime) ||
+          !/^([01]\d|2[0-3]):[0-5]\d$/.test(endTime) || endTime <= startTime)
         return error('Provide a valid time range; end must be after start.', 400);
       if (!courseId || !venue) return error('Select a course and enter a venue.', 400);
       const [courseRecord] = await db.get('afams_courses', [courseId]);
@@ -997,8 +1024,7 @@ export const handler = router({
       }
       const p = await profileFor(ctx.user!);
       const duplicate = await db.list('afams_timetable', { limit: 300 });
-      const clash = duplicate.items.some((item: any) =>
-        item.courseId === courseId && item.dayOfWeek === dayOfWeek &&
+      const clash = duplicate.items.some((item: any) =>        item.courseId === courseId && item.dayOfWeek === dayOfWeek &&
         item.startTime === startTime && item.lecturerId === p.userId
       );
       if (clash) return error('This course already has a timetable entry at that time for your account.', 409);
