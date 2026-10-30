@@ -16,7 +16,7 @@ This tracker follows the supplied AFAMS/AFIAMS specification. A feature is not c
 | Requirement group | Status | Evidence / remaining work |
 |---|---|---|
 | Authentication and role-aware dashboards | Partial | AppDeploy authentication and role profile exist. Four required roles exist, with an additional internal Class Representative role. Validate all role-specific screens and authorization boundaries. |
-| Student identity and institutional registration verification | Not implemented | No registration-number lookup against an institution master registry; no verified student onboarding or automatic academic profile assignment. |
+| Student identity and institutional registration verification | Partial — GitHub implementation merged; live deployment and tests pending | Primary institution setup, student registration-number submission, administrator verify/reject queue and identity audit metadata are merged in PR #2. It is a single-primary-institution workflow; no authoritative SIS lookup, tenant isolation or attendance check-in enforcement yet. Live AppDeploy source is still on the previous snapshot until a deployment succeeds. |
 | Faculty, department, programme, course, semester setup | Partial | Academic administration CRUD exists. Academic years, lecturers, students, classrooms, course registration and full parent/semester links are incomplete. |
 | Course enrolment | Partial | Basic student-course enrollment exists, but not automatic import/verification from institutional records or active-semester enforcement at check-in. |
 | Dynamic QR attendance | Partial | Session codes and QR display foundation exist. Verify camera scanning, QR rotation/expiry, replay prevention, rate limits and secure binding to a session. |
