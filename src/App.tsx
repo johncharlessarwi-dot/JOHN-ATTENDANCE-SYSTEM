@@ -34,6 +34,7 @@ import {
   Zap,
   ClipboardList,
   MapPin,
+  Radio,
   AlertCircle,
   Settings,
 } from 'lucide-react';
@@ -904,6 +905,7 @@ function App() {
               Codes are time-limited. New check-ins remain pending until reviewed by the lecturer.
             </p>
             <QRScanner onDetected={value => setCode(value)} />
+            <NFCScanner onDetected={value => setCode(value)} />
             <button type="button" className="outline" onClick={async () => { setGeoMessage('Requesting location…'); try { const point = await getBrowserPosition(); setCheckinGeo(point); setGeoMessage('Location captured with ±' + Math.round(point.accuracy) + ' m accuracy.'); } catch (e: any) { setGeoMessage(e.message || 'Could not capture location.'); } }}><MapPin size={16}/> Share my current location</button>
             {geoMessage && <p className="hint">{geoMessage}</p>}
             <button className="primary wide" disabled={busy}>
@@ -973,6 +975,60 @@ function QRScanner({ onDetected }: { onDetected: (value: string) => void }) {
       <ScanLine size={16}/>{active ? 'Stop QR scanner' : 'Scan QR with camera'}
     </button>
     {active && <video ref={videoRef} muted playsInline />}
+    {message && <small className="hint">{message}</small>}
+  </div>;
+}
+function NFCScanner({ onDetected }: { onDetected: (value: string) => void }) {
+  const [active, setActive] = useState(false);
+  const [message, setMessage] = useState('');
+  const onDetectedRef = useRef(onDetected);
+  useEffect(() => { onDetectedRef.current = onDetected; }, [onDetected]);
+  useEffect(() => {
+    if (!active) return;
+    const controller = new AbortController();
+    async function start() {
+      try {
+        const Reader = (window as any).NDEFReader;
+        if (!Reader) {
+          setMessage('Web NFC is not supported here. Use Android Chrome with NFC enabled, QR scanning or manual code.');
+          setActive(false);
+          return;
+        }
+        const reader = new Reader();
+        reader.onreading = (event: any) => {
+          const record = event.message?.records?.find((item: any) => item.recordType === 'text');
+          if (!record) {
+            setMessage('The NFC tag does not contain a text record. Write the six-character session code to the tag first.');
+            return;
+          }
+          try {
+            const value = new TextDecoder(record.encoding || 'utf-8').decode(record.data).trim().toUpperCase();
+            if (/^[A-Z0-9]{6}$/.test(value)) {
+              onDetectedRef.current(value);
+              setMessage('NFC tag read successfully. Submit to verify attendance.');
+              setActive(false);
+            } else {
+              setMessage('The NFC text record is not a valid six-character session code.');
+            }
+          } catch {
+            setMessage('Could not decode this NFC tag. Use a plain-text NDEF record.');
+          }
+        };
+        reader.onreadingerror = () => setMessage('Unable to read this NFC tag. Hold it near the device and retry.');
+        await reader.scan({ signal: controller.signal });
+        setMessage('Ready. Hold an NFC tag containing the session code near the back of your phone.');
+      } catch {
+        setMessage('NFC permission was denied or NFC is unavailable. Use QR scanning or manual code.');
+        setActive(false);
+      }
+    }
+    start();
+    return () => controller.abort();
+  }, [active]);
+  return <div className="qr-scanner">
+    <button type="button" className="outline" onClick={() => { setMessage(''); setActive(value => !value); }}>
+      <Radio size={16}/>{active ? 'Stop NFC scan' : 'Scan NFC tag'}
+    </button>
     {message && <small className="hint">{message}</small>}
   </div>;
 }
