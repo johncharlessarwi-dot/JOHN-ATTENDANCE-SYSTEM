@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@appdeploy/client';
 import { Download, FileSpreadsheet, RefreshCw, ShieldCheck } from 'lucide-react';
 
-type Role = 'student' | 'lecturer' | 'administrator' | 'super_admin';
+type Role = 'student' | 'lecturer' | 'class_rep' | 'administrator' | 'super_admin';
 type ReportRow = {
   id: string;
   course: string;
