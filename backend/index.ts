@@ -24,6 +24,10 @@ type SessionRecord = {
   startsAt: number;
   expiresAt: number;
   status: string;
+  locationRequired?: boolean;
+  latitude?: number;
+  longitude?: number;
+  radiusMeters?: number;
 };
 type AttendanceRecord = {
   sessionId: string;
@@ -205,6 +209,12 @@ export const handler = router({
         return error('Enter a valid course or class name.', 400);
       if (!Number.isInteger(duration) || duration < 5 || duration > 180)
         return error('Duration must be between 5 and 180 minutes.', 400);
+      const locationRequired = Boolean(b.locationRequired);
+      const latitude = Number(b.latitude);
+      const longitude = Number(b.longitude);
+      const radiusMeters = Math.max(30, Math.min(1000, Number(b.radiusMeters) || 150));
+      if (locationRequired && (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 || !Number.isFinite(longitude) || longitude < -180 || longitude > 180))
+        return error('Capture a valid classroom location before enabling the geofence.', 400);
       const p = await profileFor(ctx.user!),
         startsAt = now(),
         session = {
@@ -215,6 +225,8 @@ export const handler = router({
           startsAt,
           expiresAt: startsAt + duration * 60000,
           status: 'active',
+          locationRequired,
+          ...(locationRequired ? { latitude, longitude, radiusMeters } : {}),
         };
       const [id] = await db.add('afams_sessions', [session]);
       if (!id) return error('Could not create session. Retry.', 503);
@@ -237,6 +249,20 @@ export const handler = router({
       if (!s) return error('Session code was not found.', 404);
       if (s.status !== 'active' || s.expiresAt <= now())
         return error('This session has expired.', 410);
+      const latitude = Number(b.latitude);
+      const longitude = Number(b.longitude);
+      const accuracy = Number(b.accuracy);
+      if (s.locationRequired) {
+        if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 || !Number.isFinite(longitude) || longitude < -180 || longitude > 180 || !Number.isFinite(accuracy) || accuracy > 100)
+          return error('This session requires a location fix with accuracy of 100 metres or better. Share your current location and retry.', 403);
+        const toRadians = (value: number) => value * Math.PI / 180;
+        const dLat = toRadians(latitude - Number(s.latitude));
+        const dLon = toRadians(longitude - Number(s.longitude));
+        const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRadians(Number(s.latitude))) * Math.cos(toRadians(latitude)) * Math.sin(dLon / 2) ** 2;
+        const distance = 6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        if (distance > (Number(s.radiusMeters) || 150))
+          return error('You are outside the permitted classroom attendance area.', 403);
+      }
       if (s.createdBy === p.userId)
         return error(
           'Session owners cannot check in to their own session.',
@@ -254,6 +280,7 @@ export const handler = router({
         course: s.course,
         checkedInAt: now(),
         status: 'Pending Verification',
+        ...(s.locationRequired ? { latitude, longitude, accuracyMeters: accuracy, locationVerified: true } : { locationVerified: false }),
       };
       const [created] = await db.tx.add('afams_attendance', [
         { id, ...record },
