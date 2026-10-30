@@ -604,6 +604,40 @@ export const handler = router({
       });
     },
   ],
+  'POST /api/ai/engagement-review': [
+    requireAuth(),
+    async ({ user }) => {
+      const p = await profileFor(user!);
+      if (p.role !== 'student') return error('This personal engagement review is available to student accounts.', 403);
+      const [attendance, focusEvents, enrollments] = await Promise.all([
+        db.list<any>('afams_attendance', { limit: 500 }),
+        db.list<any>('afams_focus_events', { limit: 1000 }),
+        db.list<any>('afams_enrollments', { limit: 300 }),
+      ]);
+      const ownAttendance = attendance.items.filter((item: any) => item.studentId === p.userId);
+      const ownFocus = focusEvents.items.filter((item: any) => item.studentId === p.userId);
+      const summary = {
+        activeEnrollments: enrollments.items.filter((item: any) => item.studentId === p.userId && item.status === 'active').length,
+        attendanceRecords: ownAttendance.length,
+        verified: ownAttendance.filter((item: any) => item.status === 'Verified').length,
+        pending: ownAttendance.filter((item: any) => item.status === 'Pending Verification').length,
+        rejected: ownAttendance.filter((item: any) => item.status === 'Rejected').length,
+        focusInterruptions: ownFocus.filter((item: any) => item.eventType === 'hidden').length,
+        gpsVerifiedCheckIns: ownAttendance.filter((item: any) => item.locationVerified).length,
+      };
+      try {
+        const result = await ai.generate({
+          system: 'You are an academic engagement coach for AFAMS. Analyze only the supplied recorded engagement signals. Do not invent grades, assignment performance, missed classes, course completion, attendance rates or risk probabilities. Distinguish facts from cautious interpretation. If evidence is sparse, say so. Provide: Observed signals, Possible concerns (only if supported), Three practical next steps, and Data not available. Do not claim to diagnose or determine academic failure.',
+          prompt: 'Review this student engagement summary and provide a careful early-warning review.\n' + JSON.stringify(summary),
+          maxTokens: 1000,
+          thinkingMode: 'FAST',
+        });
+        return json({ review: result.text, data: summary });
+      } catch (e) {
+        return error(e instanceof Error ? e.message : 'Engagement review is temporarily unavailable.', 503);
+      }
+    },
+  ],
   'POST /api/ai/assistant': [
     requireAuth(),
     async ctx => {
