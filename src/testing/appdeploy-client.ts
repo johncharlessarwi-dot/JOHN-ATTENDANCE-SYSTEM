@@ -10,3 +10,9 @@ export const api = {
   put: unavailable,
   delete: unavailable,
 };
+export const auth = {
+  signInWithRedirect: async () => {
+    throw new Error('Authentication is available only inside the deployed AFAMS runtime.');
+  },
+  signOut: async () => undefined,
+};
