@@ -17,12 +17,12 @@
     "expected": "The published announcement appears in the lecturer's view and is delivered only to the selected audience."
   },
   {
-    "name": "Student views announcements for their audience",
+    "name": "Students earn points and badges from verified attendance",
     "viewport": "mobile",
-    "covers": ["student announcement access", "audience filtering", "mobile announcement view"],
-    "description": "Verifies students can read announcements addressed to all users or students but not staff-only updates.",
-    "steps": ["Sign in as a Student", "Open Announcements", "Review visible campus updates"],
-    "expected": "Only published announcements for Everyone or Students are visible."
+    "covers": ["gamification points", "attendance achievement badges", "student leaderboard", "verified attendance scoring"],
+    "description": "Verifies only lecturer-verified attendance earns points and unlocks milestone badges.",
+    "steps": ["Sign in as a Student with a verified attendance record", "Open Achievements & leaderboard", "Review points, verified class count and badges", "Compare the student's score with the leaderboard"],
+    "expected": "Each verified record contributes ten points and pending or rejected records contribute no points."
   },
   {
     "name": "Student uses QR, GPS and focus policies for class attendance",
