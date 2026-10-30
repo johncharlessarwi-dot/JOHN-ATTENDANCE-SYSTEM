@@ -9,12 +9,12 @@
     "expected": "All linked academic records remain visible after refresh; invalid parent references are rejected."
   },
   {
-    "name": "Lecturer publishes an announcement to a selected audience",
+    "name": "Administrator assigns a class representative to a course",
     "viewport": "desktop",
-    "covers": ["campus announcements", "audience targeting", "announcement persistence", "announcement deletion authorization"],
-    "description": "Verifies a lecturer can publish an announcement for a selected audience and that the announcement persists.",
-    "steps": ["Sign in as a Lecturer", "Open Announcements", "Publish a titled message for Students", "Refresh the announcement board"],
-    "expected": "The published announcement appears in the lecturer's view and is delivered only to the selected audience."
+    "covers": ["class representative role", "course representative assignment", "role-scoped CR dashboard", "student list and attendance summaries"],
+    "description": "Verifies an administrator assigns an account with Class Representative role to a course and the representative sees only their assigned course data.",
+    "steps": ["Sign in as an Administrator and assign the Class Representative role to a user", "Open Class Representatives", "Assign the representative to a course", "Sign in as that representative and open CR Dashboard"],
+    "expected": "The representative sees enrolled students and attendance summaries only for assigned courses."
   },
   {
     "name": "Students earn points and badges from verified attendance",
@@ -27,10 +27,10 @@
   {
     "name": "Student uses QR, GPS and focus policies for class attendance",
     "viewport": "mobile",
-    "covers": ["QR code generation", "browser camera QR scanning", "GPS geofence attendance", "location accuracy validation", "focus monitoring", "standard strict and grace policies", "pending attendance verification", "duplicate check-in prevention"],
-    "description": "Verifies a student checks in to a location-required session and focus interruptions are recorded according to the lecturer's selected policy.",
-    "steps": ["Sign in as a Lecturer and create a session with geofencing and a focus policy", "Display the session QR code", "Sign in as a Student inside the geofence and complete QR check-in", "Enable focus monitoring for that session", "Switch away from the browser and return", "Review the focus event and resulting attendance state"],
-    "expected": "The geofence is enforced, focus interruptions are recorded, and Strict or Grace policies apply their configured attendance outcomes."
+    "covers": ["QR code generation", "browser camera QR scanning", "NFC attendance tags", "GPS geofence attendance", "location accuracy validation", "focus monitoring", "standard strict and grace policies", "pending attendance verification", "duplicate check-in prevention"],
+    "description": "Verifies students can check in using QR, NFC or manual code and that location and focus rules are enforced.",
+    "steps": ["Create a session with geofencing and a focus policy", "Display the QR code and write the code to an NFC tag", "Scan the QR or tap the NFC tag from a supported device", "Enable focus monitoring and switch away from the browser"],
+    "expected": "The system validates the session code, enforces configured geofence/focus policies and records check-in for lecturer review."
   },
   {
     "name": "AI Study Hub answers questions, generates quizzes and reviews engagement",
