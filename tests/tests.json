@@ -9,6 +9,22 @@
     "expected": "All linked academic records remain visible after refresh; invalid parent references are rejected."
   },
   {
+    "name": "Lecturer publishes an announcement to a selected audience",
+    "viewport": "desktop",
+    "covers": ["campus announcements", "audience targeting", "announcement persistence", "announcement deletion authorization"],
+    "description": "Verifies a lecturer can publish an announcement for a selected audience and that the announcement persists.",
+    "steps": ["Sign in as a Lecturer", "Open Announcements", "Publish a titled message for Students", "Refresh the announcement board"],
+    "expected": "The published announcement appears in the lecturer's view and is delivered only to the selected audience."
+  },
+  {
+    "name": "Student views announcements for their audience",
+    "viewport": "mobile",
+    "covers": ["student announcement access", "audience filtering", "mobile announcement view"],
+    "description": "Verifies students can read announcements addressed to all users or students but not staff-only updates.",
+    "steps": ["Sign in as a Student", "Open Announcements", "Review visible campus updates"],
+    "expected": "Only published announcements for Everyone or Students are visible."
+  },
+  {
     "name": "Student scans a session QR and submits attendance for review",
     "viewport": "mobile",
     "covers": ["QR code generation", "browser camera QR scanning", "time-limited attendance check-in", "pending attendance verification", "duplicate check-in prevention"],
@@ -17,27 +33,11 @@
     "expected": "The student receives a pending verification confirmation and cannot submit a second check-in for the same session."
   },
   {
-    "name": "Lecturer verifies or rejects attendance only for own sessions",
+    "name": "Lecturer verifies attendance only for own sessions and students cannot publish announcements",
     "viewport": "desktop",
-    "covers": ["lecturer attendance review queue", "attendance approval", "attendance rejection", "review ownership authorization", "audit trail"],
-    "description": "Verifies a lecturer can make a single review decision for pending records belonging to their own sessions.",
-    "steps": ["Sign in as a Lecturer", "Open Review attendance", "Verify a pending record from a session they created", "Attempt to review a record from another lecturer's session"],
-    "expected": "The owned record changes to Verified or Rejected; another lecturer's record is denied and reviewed records cannot be changed again."
-  },
-  {
-    "name": "Students can view only their enrolled timetable",
-    "viewport": "mobile",
-    "covers": ["weekly timetable", "student course enrollment filtering", "mobile timetable view"],
-    "description": "Verifies the timetable view is scoped to the authenticated student's active course enrollments.",
-    "steps": ["Sign in as a Student with one active course enrollment", "Open Timetable", "Review the weekly schedule"],
-    "expected": "Only timetable entries for courses in the student's active enrollments are shown."
-  },
-  {
-    "name": "Academic administration is read-only for students and invalid decisions are rejected",
-    "viewport": "desktop",
-    "covers": ["academic role authorization", "student read-only boundary", "attendance decision validation", "invalid status transition"],
-    "description": "Verifies student writes are denied and attendance records cannot be moved into unsupported review states.",
-    "steps": ["Sign in as a Student and attempt to access attendance review", "Attempt to submit an invalid attendance decision", "Verify the request is denied"],
-    "expected": "Students cannot review attendance and only Verified or Rejected decisions are accepted for pending records."
+    "covers": ["lecturer attendance review queue", "attendance approval", "attendance rejection", "review ownership authorization", "announcement role authorization", "audit trail"],
+    "description": "Verifies lecturer review ownership and that students cannot create or modify staff announcements.",
+    "steps": ["Sign in as a Lecturer and review a pending record from a session they created", "Attempt to review a record from another lecturer's session", "Sign in as a Student and attempt to publish an announcement"],
+    "expected": "Only owned attendance records can be reviewed; students cannot publish announcements."
   }
 ]
