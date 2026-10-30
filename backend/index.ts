@@ -428,6 +428,96 @@ export const handler = router({
       return json({ ok: true });
     },
   ],
+  'GET /api/timetable': [
+    requireAuth(),
+    async ({ user }) => {
+      try {
+        const p = await profileFor(user!);
+        const [timetable, enrollments] = await Promise.all([
+          db.list('afams_timetable', { limit: 300 }),
+          p.role === 'student'
+            ? db.list('afams_enrollments', { limit: 300 })
+            : Promise.resolve({ items: [] as any[] }),
+        ]);
+        const enrolledCourseIds = new Set(
+          enrollments.items
+            .filter((item: any) => item.studentId === p.userId && item.status === 'active')
+            .map((item: any) => item.courseId)
+        );
+        const visible = timetable.items.filter((item: any) => {
+          if (p.role === 'student') return enrolledCourseIds.has(item.courseId);
+          if (p.role === 'lecturer') return item.lecturerId === p.userId;
+          return true;
+        });
+        return json({ timetable: visible.sort((a: any, b: any) =>
+          String(a.dayOfWeek).localeCompare(String(b.dayOfWeek)) ||
+          String(a.startTime).localeCompare(String(b.startTime))
+        ), canManage: p.role !== 'student' });
+      } catch (e) {
+        return error(e instanceof Error ? e.message : 'Timetable unavailable.', 500);
+      }
+    },
+  ],
+  'POST /api/timetable': [
+    requireAuth(),
+    async ctx => {
+      const denied = await roleGuard(ctx, ['lecturer', 'administrator', 'super_admin']);
+      if (denied) return denied;
+      const b = (ctx.body || {}) as Record<string, unknown>;
+      const courseId = clean(b.courseId, 100);
+      const dayOfWeek = clean(b.dayOfWeek, 12);
+      const startTime = clean(b.startTime, 5);
+      const endTime = clean(b.endTime, 5);
+      const venue = clean(b.venue, 100);
+      const semesterId = clean(b.semesterId, 100);
+      if (!/^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)$/.test(dayOfWeek))
+        return error('Choose a valid day of the week.', 400);
+      if (!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(startTime) ||
+          !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(endTime) || endTime <= startTime)
+        return error('Provide a valid time range; end must be after start.', 400);
+      if (!courseId || !venue) return error('Select a course and enter a venue.', 400);
+      const [courseRecord] = await db.get('afams_courses', [courseId]);
+      if (!courseRecord) return error('Selected course was not found.', 404);
+      if (semesterId) {
+        const [semester] = await db.get('afams_semesters', [semesterId]);
+        if (!semester) return error('Selected semester was not found.', 404);
+      }
+      const p = await profileFor(ctx.user!);
+      const duplicate = await db.list('afams_timetable', { limit: 300 });
+      const clash = duplicate.items.some((item: any) =>
+        item.courseId === courseId && item.dayOfWeek === dayOfWeek &&
+        item.startTime === startTime && item.lecturerId === p.userId
+      );
+      if (clash) return error('This course already has a timetable entry at that time for your account.', 409);
+      const id = 'tt_' + crypto.randomUUID().replace(/-/g, '');
+      const record = {
+        id, courseId, courseName: (courseRecord as any).name || 'Course',
+        courseCode: (courseRecord as any).code || '',
+        dayOfWeek, startTime, endTime, venue, semesterId: semesterId || null,
+        lecturerId: p.userId, createdAt: now(), createdBy: p.userId, status: 'active',
+      };
+      const [created] = await db.tx.add('afams_timetable', [record]);
+      if (!created) return error('Could not save timetable entry.', 503);
+      await audit(p.userId, 'Timetable entry created', record.courseName + ' · ' + dayOfWeek + ' ' + startTime);
+      return json({ ok: true, item: record }, 201);
+    },
+  ],
+  'DELETE /api/timetable/:id': [
+    requireAuth(),
+    async ctx => {
+      const p = await profileFor(ctx.user!);
+      const id = clean(ctx.params.id, 120);
+      const [entry] = await db.get<any>('afams_timetable', [id], { consistent: true });
+      if (!entry) return error('Timetable entry was not found.', 404);
+      if (p.role !== 'administrator' && p.role !== 'super_admin' &&
+          !(p.role === 'lecturer' && entry.lecturerId === p.userId))
+        return error('You cannot remove this timetable entry.', 403);
+      const [removed] = await db.delete('afams_timetable', [id]);
+      if (!removed) return error('Could not remove timetable entry.', 503);
+      await audit(p.userId, 'Timetable entry deleted', id);
+      return json({ ok: true });
+    },
+  ],
   'GET /api/admin/audit': [
     requireAuth(),
     requireAdminEmailAllowlist(ADMIN_EMAILS),
