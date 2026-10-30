@@ -33,11 +33,11 @@
     "expected": "The geofence is enforced, focus interruptions are recorded, and Strict or Grace policies apply their configured attendance outcomes."
   },
   {
-    "name": "Attendance reports respect role boundaries and export a CSV file",
+    "name": "AI Study Hub answers questions and generates quizzes from course notes",
     "viewport": "desktop",
-    "covers": ["attendance analytics", "role-scoped report data", "course-level breakdown", "CSV export", "GPS verification reporting", "focus interruption reporting"],
-    "description": "Verifies users see reports scoped to their role and can export the visible attendance data.",
-    "steps": ["Sign in as a user and open Attendance reports", "Review the summary and course breakdown", "Export CSV", "Open the downloaded CSV and compare its rows with the visible report"],
-    "expected": "The report is scoped to the signed-in user's role and the CSV contains the visible records and status fields."
+    "covers": ["AI academic assistance", "AFAMS user-context grounding", "AI quiz generation", "course-material-based practice", "AI failure handling"],
+    "description": "Verifies authenticated users can ask an academic question and generate practice questions from supplied course material.",
+    "steps": ["Sign in and open AI Study Hub", "Ask the assistant an academic question", "Open the quiz generator and enter a topic with course notes", "Generate a practice quiz"],
+    "expected": "The assistant returns an academic response and the quiz generator returns questions with answers and explanations."
   }
 ]
