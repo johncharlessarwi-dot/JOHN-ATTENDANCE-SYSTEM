@@ -8,7 +8,7 @@ import {
   ai,
 } from '@appdeploy/sdk';
 const ADMIN_EMAILS = ['johncharlessarwi@gmail.com'];
-type Role = 'student' | 'lecturer' | 'administrator' | 'super_admin';
+type Role = 'student' | 'lecturer' | 'class_rep' | 'administrator' | 'super_admin';
 type UserRecord = {
   userId: string;
   email?: string;
@@ -48,7 +48,7 @@ const makeCode = () => {
   return Array.from(bytes, byte => alphabet[byte % alphabet.length]).join('');
 };
 const isRole = (v: unknown): v is Role =>
-  ['student', 'lecturer', 'administrator', 'super_admin'].includes(String(v));
+  ['student', 'lecturer', 'class_rep', 'administrator', 'super_admin'].includes(String(v));
 async function profileFor(user: {
   userId: string;
   email?: string;
@@ -109,89 +109,30 @@ export const handler = router({
       try {
         const p = await profileFor(user!);
         const [sp, ap, lp] = await Promise.all([
-          db.list<SessionRecord & { id: string }>('afams_sessions', {
-            limit: 100,
-          }),
-          db.list<AttendanceRecord & { id: string }>('afams_attendance', {
-            limit: 200,
-          }),
-          p.role === 'super_admin' || p.role === 'administrator'
-            ? db.list<
-                {
-                  actorId: string;
-                  action: string;
-                  detail: string;
-                  createdAt: number;
-                } & { id: string }
-              >('afams_audit', { limit: 60 })
-            : Promise.resolve({
-                items: [] as Array<{
-                  id: string;
-                  actorId: string;
-                  action: string;
-                  detail: string;
-                  createdAt: number;
-                }>,
-              }),
+          db.list<any>('afams_sessions', { limit: 100 }),
+          db.list<any>('afams_attendance', { limit: 200 }),
+          p.role === 'super_admin' || p.role === 'administrator' ? db.list<any>('afams_audit', { limit: 60 }) : Promise.resolve({ items: [] as any[] }),
         ]);
-        const sessions =
-          p.role === 'student'
-            ? sp.items.filter(
-                s => s.status === 'active' || s.createdBy === p.userId
-              )
-            : p.role === 'lecturer'
-              ? sp.items.filter(s => s.createdBy === p.userId)
-              : sp.items;
-        const attendance =
-          p.role === 'student'
-            ? ap.items.filter(a => a.studentId === p.userId)
-            : p.role === 'lecturer'
-              ? ap.items.filter(a => sessions.some(s => s.id === a.sessionId))
-              : ap.items;
-        const active = sessions.filter(
-          s => s.status === 'active' && s.expiresAt > now()
-        );
-        return json({
-          profile: p,
-          stats: {
-            sessions: sessions.length,
-            attendance: attendance.length,
-            activeSessions: active.length,
-            // A valid rate needs enrolled-student and eligible-session denominators.
-            // Until those are linked to attendance, do not publish a misleading percentage.
-            attendanceRate: null,
-          },
-          sessions: sessions
-            .sort((a, b) => b.startsAt - a.startsAt)
-            .slice(0, 30),
-          attendance: attendance
-            .sort((a, b) => b.checkedInAt - a.checkedInAt)
-            .slice(0, 50),
-          audit: lp.items
-            .sort((a, b) => b.createdAt - a.createdAt)
-            .slice(0, 30),
-        });
-      } catch (e) {
-        return error(
-          e instanceof Error ? e.message : 'Dashboard unavailable.',
-          500
-        );
-      }
+        const sessions = p.role === 'class_rep' ? [] : p.role === 'student' ? sp.items.filter((x: any) => x.status === 'active' || x.createdBy === p.userId) : p.role === 'lecturer' ? sp.items.filter((x: any) => x.createdBy === p.userId) : sp.items;
+        const attendance = p.role === 'class_rep' ? [] : p.role === 'student' ? ap.items.filter((x: any) => x.studentId === p.userId) : p.role === 'lecturer' ? ap.items.filter((x: any) => sessions.some((s: any) => s.id === x.sessionId)) : ap.items;
+        const active = sessions.filter((x: any) => x.status === 'active' && x.expiresAt > now());
+        return json({ profile: p, stats: { sessions: sessions.length, attendance: attendance.length, activeSessions: active.length, attendanceRate: null }, sessions: sessions.sort((a: any,b: any)=>b.startsAt-a.startsAt).slice(0,30), attendance: attendance.sort((a: any,b: any)=>b.checkedInAt-a.checkedInAt).slice(0,50), audit: lp.items.sort((a: any,b: any)=>b.createdAt-a.createdAt).slice(0,30) });
+      } catch (e) { return error(e instanceof Error ? e.message : 'Dashboard unavailable.', 500); }
     },
   ],
   'GET /api/sessions': [
     requireAuth(),
     async ({ user }) => {
       const p = await profileFor(user!);
-      const r = await db.list<SessionRecord & { id: string }>(
-        'afams_sessions',
-        { limit: 100 }
-      );
-      return json({
-        sessions: r.items
-          .filter(s => s.createdBy === p.userId || s.status === 'active')
-          .slice(0, 40),
-      });
+      const [sessions, assignments, courses] = await Promise.all([
+        db.list<any>('afams_sessions', { limit: 500 }),
+        p.role === 'class_rep' ? db.list<any>('afams_class_rep_courses', { limit: 500 }) : Promise.resolve({ items: [] as any[] }),
+        p.role === 'class_rep' ? db.list<any>('afams_courses', { limit: 500 }) : Promise.resolve({ items: [] as any[] }),
+      ]);
+      const ids = new Set(assignments.items.filter((x: any) => x.userId === p.userId).map((x: any) => x.courseId));
+      const names = new Set(courses.items.filter((x: any) => ids.has(x.id)).flatMap((x: any) => [x.name,x.code].filter(Boolean)));
+      const visible = sessions.items.filter((x: any) => p.role === 'class_rep' ? names.has(x.course) : x.createdBy === p.userId || x.status === 'active');
+      return json({ sessions: visible.slice(0,40) });
     },
   ],
   'POST /api/sessions': [
@@ -400,28 +341,18 @@ export const handler = router({
     async ({ user }) => {
       try {
         const p = await profileFor(user!);
-        const [faculties, departments, programmes, courses, semesters, enrollments] = await Promise.all([
+        const [faculties, departments, programmes, courses, semesters, enrollments, assignments] = await Promise.all([
           db.list('afams_faculties', { limit: 200 }),
           db.list('afams_departments', { limit: 200 }),
           db.list('afams_programmes', { limit: 200 }),
-          db.list('afams_courses', { limit: 200 }),
+          db.list<any>('afams_courses', { limit: 200 }),
           db.list('afams_semesters', { limit: 100 }),
-          db.list('afams_enrollments', { limit: 200 }),
+          db.list<any>('afams_enrollments', { limit: 200 }),
+          p.role === 'class_rep' ? db.list<any>('afams_class_rep_courses', { limit: 500 }) : Promise.resolve({ items: [] as any[] }),
         ]);
-        return json({
-          canManage: p.role === 'administrator' || p.role === 'super_admin',
-          faculties: faculties.items,
-          departments: departments.items,
-          programmes: programmes.items,
-          courses: courses.items,
-          semesters: semesters.items,
-          enrollments: p.role === 'student'
-            ? enrollments.items.filter((x: any) => x.studentId === p.userId)
-            : enrollments.items,
-        });
-      } catch (e) {
-        return error(e instanceof Error ? e.message : 'Academic data unavailable.', 500);
-      }
+        const ids = new Set(assignments.items.filter((x: any) => x.userId === p.userId).map((x: any) => x.courseId));
+        return json({ canManage: p.role === 'administrator' || p.role === 'super_admin', faculties: p.role === 'class_rep' ? [] : faculties.items, departments: p.role === 'class_rep' ? [] : departments.items, programmes: p.role === 'class_rep' ? [] : programmes.items, courses: p.role === 'class_rep' ? courses.items.filter((x: any) => ids.has(x.id)) : courses.items, semesters: p.role === 'class_rep' ? [] : semesters.items, enrollments: p.role === 'student' ? enrollments.items.filter((x: any) => x.studentId === p.userId) : p.role === 'class_rep' ? enrollments.items.filter((x: any) => ids.has(x.courseId) && x.status === 'active') : enrollments.items });
+      } catch (e) { return error(e instanceof Error ? e.message : 'Academic data unavailable.', 500); }
     },
   ],
   'POST /api/academic': [
@@ -567,6 +498,73 @@ export const handler = router({
       return json({ ok: true, focusStatus: patch.focusStatus || record.focusStatus, interruptions, attendanceStatus: patch.status || record.status });
     },
   ],
+  'GET /api/class-rep/assignments': [
+    requireAuth(),
+    async ({ user }) => {
+      const p = await profileFor(user!);
+      if (!['class_rep', 'administrator', 'super_admin'].includes(p.role)) return error('You do not have permission to view class representative assignments.', 403);
+      const all = await db.list<any>('afams_class_rep_courses', { limit: 500 });
+      const rows = p.role === 'class_rep' ? all.items.filter((x: any) => x.userId === p.userId) : all.items;
+      const [courses, users] = await Promise.all([db.list<any>('afams_courses', { limit: 500 }), db.list<any>('afams_users', { limit: 500 })]);
+      const courseMap = new Map(courses.items.map((c: any) => [c.id, c]));
+      const userMap = new Map(users.items.map((u: any) => [u.userId, u]));
+      return json({ assignments: rows.map((x: any) => ({ ...x, courseName: (courseMap.get(x.courseId) as any)?.name || 'Course', representativeName: (userMap.get(x.userId) as any)?.name || 'Class Representative' })) });
+    },
+  ],
+  'POST /api/class-rep/assignments': [
+    requireAuth(),
+    async ctx => {
+      const denied = await roleGuard(ctx, ['administrator', 'super_admin']);
+      if (denied) return denied;
+      const b = (ctx.body || {}) as Record<string, unknown>;
+      const userId = clean(b.userId, 100), courseId = clean(b.courseId, 100);
+      const [rep, course] = await Promise.all([db.get<UserRecord>('afams_users', [userId]), db.get<any>('afams_courses', [courseId])]);
+      if (!rep[0] || rep[0].role !== 'class_rep') return error('Assign the Class Representative role to this account first.', 400);
+      if (!course[0]) return error('Selected course was not found.', 404);
+      const id = 'cr_' + courseId + '_' + userId;
+      const [created] = await db.tx.add('afams_class_rep_courses', [{ id, userId, courseId, assignedAt: now(), assignedBy: ctx.user!.userId }]);
+      if (!created) return error('This representative is already assigned to that course.', 409);
+      await audit(ctx.user!.userId, 'Class representative assigned', courseId + ' · ' + userId);
+      return json({ ok: true, id }, 201);
+    },
+  ],
+  'GET /api/class-rep/dashboard': [
+    requireAuth(),
+    async ({ user }) => {
+      const p = await profileFor(user!);
+      if (p.role !== 'class_rep') return error('This dashboard is for Class Representatives.', 403);
+      const [assignments, courses, enrollments, sessions, attendance, users] = await Promise.all([
+        db.list<any>('afams_class_rep_courses', { limit: 500 }),
+        db.list<any>('afams_courses', { limit: 500 }),
+        db.list<any>('afams_enrollments', { limit: 1000 }),
+        db.list<any>('afams_sessions', { limit: 1000 }),
+        db.list<any>('afams_attendance', { limit: 2000 }),
+        db.list<any>('afams_users', { limit: 2000 }),
+      ]);
+      const ids = new Set(assignments.items.filter((x: any) => x.userId === p.userId).map((x: any) => x.courseId));
+      const assigned = courses.items.filter((c: any) => ids.has(c.id));
+      const names = new Set(assigned.flatMap((c: any) => [c.name, c.code].filter(Boolean)));
+      const enrolled = enrollments.items.filter((e: any) => ids.has(e.courseId) && e.status === 'active');
+      const studentIds = new Set(enrolled.map((e: any) => e.studentId));
+      const userMap = new Map(users.items.filter((u: any) => studentIds.has(u.userId)).map((u: any) => [u.userId, u]));
+      const classSessions = sessions.items.filter((x: any) => names.has(x.course));
+      const sessionIds = new Set(classSessions.map((x: any) => x.id));
+      const records = attendance.items.filter((x: any) => sessionIds.has(x.sessionId));
+      const courseStats = assigned.map((c: any) => {
+        const memberCount = enrolled.filter((e: any) => e.courseId === c.id).length;
+        const courseNames = new Set([c.name, c.code].filter(Boolean));
+        const idsForCourse = new Set(classSessions.filter((x: any) => courseNames.has(x.course)).map((x: any) => x.id));
+        const rows = records.filter((x: any) => idsForCourse.has(x.sessionId));
+        return { id: c.id, name: c.name, code: c.code || '', students: memberCount, verified: rows.filter((x: any) => x.status === 'Verified').length, pending: rows.filter((x: any) => x.status === 'Pending Verification').length, rejected: rows.filter((x: any) => x.status === 'Rejected').length };
+      });
+      const studentRows = Array.from(studentIds).map(id => {
+        const u = userMap.get(id) as any;
+        const rows = records.filter((x: any) => x.studentId === id);
+        return { userId: id, name: u?.name || 'Student', verified: rows.filter((x: any) => x.status === 'Verified').length, pending: rows.filter((x: any) => x.status === 'Pending Verification').length, rejected: rows.filter((x: any) => x.status === 'Rejected').length };
+      }).sort((a: any, b: any) => a.name.localeCompare(b.name));
+      return json({ courses: courseStats, students: studentRows, summary: { courses: assigned.length, students: studentRows.length, verified: records.filter((x: any) => x.status === 'Verified').length, pending: records.filter((x: any) => x.status === 'Pending Verification').length }, note: 'Attendance matching uses the course name or code stored on class sessions. Unmatched free-text session names are not included.' });
+    },
+  ],
   'GET /api/gamification': [
     requireAuth(),
     async ({ user }) => {
@@ -645,44 +643,16 @@ export const handler = router({
       const b = (ctx.body || {}) as Record<string, unknown>;
       const question = clean(b.question, 1200);
       if (question.length < 3) return error('Enter an academic question.', 400);
-      const [attendance, enrollments, sessions] = await Promise.all([
-        db.list<any>('afams_attendance', { limit: 300 }),
-        db.list<any>('afams_enrollments', { limit: 300 }),
-        db.list<any>('afams_sessions', { limit: 300 }),
-      ]);
-      const ownSessions = sessions.items.filter((s: any) =>
-        p.role === 'student' ? s.status === 'active' || s.createdBy === p.userId :
-        p.role === 'lecturer' ? s.createdBy === p.userId : true
-      );
-      const ownSessionIds = new Set(ownSessions.map((s: any) => s.id));
-      const visibleAttendance = attendance.items.filter((r: any) =>
-        p.role === 'student' ? r.studentId === p.userId : ownSessionIds.has(r.sessionId)
-      );
-      const visibleEnrollments = p.role === 'student'
-        ? enrollments.items.filter((r: any) => r.studentId === p.userId)
-        : [];
-      const context = {
-        role: p.role,
-        enrolledCourses: visibleEnrollments.map((r: any) => r.courseId),
-        attendance: {
-          total: visibleAttendance.length,
-          verified: visibleAttendance.filter((r: any) => r.status === 'Verified').length,
-          pending: visibleAttendance.filter((r: any) => r.status === 'Pending Verification').length,
-          rejected: visibleAttendance.filter((r: any) => r.status === 'Rejected').length,
-        },
-        activeClasses: ownSessions.filter((s: any) => s.status === 'active').map((s: any) => s.course).slice(0, 20),
-      };
+      const [attendance, enrollments, sessions] = await Promise.all([db.list<any>('afams_attendance', { limit: 300 }), db.list<any>('afams_enrollments', { limit: 300 }), db.list<any>('afams_sessions', { limit: 300 })]);
+      const ownSessions = sessions.items.filter((x: any) => p.role === 'student' ? x.status === 'active' || x.createdBy === p.userId : p.role === 'lecturer' ? x.createdBy === p.userId : p.role === 'class_rep' ? false : true);
+      const ids = new Set(ownSessions.map((x: any) => x.id));
+      const visible = attendance.items.filter((x: any) => p.role === 'student' ? x.studentId === p.userId : ids.has(x.sessionId));
+      const ownEnrollments = p.role === 'student' ? enrollments.items.filter((x: any) => x.studentId === p.userId) : [];
+      const context = { role: p.role, enrolledCourses: ownEnrollments.map((x: any) => x.courseId), attendance: { total: visible.length, verified: visible.filter((x: any) => x.status === 'Verified').length, pending: visible.filter((x: any) => x.status === 'Pending Verification').length, rejected: visible.filter((x: any) => x.status === 'Rejected').length }, activeClasses: ownSessions.filter((x: any) => x.status === 'active').map((x: any) => x.course).slice(0,20) };
       try {
-        const result = await ai.generate({
-          system: 'You are AFAMS Academic Assistant. Give accurate, supportive academic guidance. Use the supplied AFAMS context only for claims about the user records. Never invent grades, attendance, courses, university policies, deadlines or institutional facts. Clearly say when information is not available. Explain concepts step by step when asked. Do not make attendance or academic record changes.',
-          prompt: 'AFAMS user context: ' + JSON.stringify(context) + '\nUser question: ' + question,
-          maxTokens: 1000,
-          thinkingMode: 'FAST',
-        });
+        const result = await ai.generate({ system: 'You are AFAMS Academic Assistant. Give accurate, supportive academic guidance. Use supplied AFAMS context only for claims about user records. Never invent grades, attendance, courses, university policies, deadlines or institutional facts. Clearly say when information is unavailable. Explain concepts step by step. Do not make attendance or academic record changes.', prompt: 'AFAMS user context: ' + JSON.stringify(context) + '\nUser question: ' + question, maxTokens: 1000, thinkingMode: 'FAST' });
         return json({ answer: result.text });
-      } catch (e) {
-        return error(e instanceof Error ? e.message : 'Academic assistant is temporarily unavailable.', 503);
-      }
+      } catch (e) { return error(e instanceof Error ? e.message : 'Academic assistant is temporarily unavailable.', 503); }
     },
   ],
   'POST /api/ai/quiz': [
@@ -710,42 +680,26 @@ export const handler = router({
     requireAuth(),
     async ({ user }) => {
       const p = await profileFor(user!);
-      const [attendance, sessions] = await Promise.all([
+      const [attendance, sessions, assignments, courses] = await Promise.all([
         db.list<any>('afams_attendance', { limit: 1000 }),
         db.list<any>('afams_sessions', { limit: 500 }),
+        p.role === 'class_rep' ? db.list<any>('afams_class_rep_courses', { limit: 500 }) : Promise.resolve({ items: [] as any[] }),
+        p.role === 'class_rep' ? db.list<any>('afams_courses', { limit: 500 }) : Promise.resolve({ items: [] as any[] }),
       ]);
-      const sessionMap = new Map(sessions.items.map((s: any) => [s.id, s]));
-      const rows = attendance.items.filter((record: any) => {
-        const session = sessionMap.get(record.sessionId) as any;
-        if (p.role === 'student') return record.studentId === p.userId;
+      const ids = new Set(assignments.items.filter((x: any) => x.userId === p.userId).map((x: any) => x.courseId));
+      const names = new Set(courses.items.filter((x: any) => ids.has(x.id)).flatMap((x: any) => [x.name,x.code].filter(Boolean)));
+      const sessionMap = new Map(sessions.items.map((x: any) => [x.id,x]));
+      const rows = attendance.items.filter((r: any) => {
+        const session = sessionMap.get(r.sessionId) as any;
+        if (p.role === 'student') return r.studentId === p.userId;
         if (p.role === 'lecturer') return session?.createdBy === p.userId;
+        if (p.role === 'class_rep') return names.has(session?.course);
         return true;
-      }).map((record: any) => {
-        const session = sessionMap.get(record.sessionId) as any;
-        return {
-          ...record,
-          venue: session?.location || '',
-          sessionStartedAt: session?.startsAt || record.checkedInAt,
-          locationVerified: Boolean(record.locationVerified),
-        };
-      }).sort((a: any, b: any) => b.checkedInAt - a.checkedInAt);
-      const summary = {
-        total: rows.length,
-        verified: rows.filter((r: any) => r.status === 'Verified').length,
-        pending: rows.filter((r: any) => r.status === 'Pending Verification').length,
-        rejected: rows.filter((r: any) => r.status === 'Rejected').length,
-        gpsVerified: rows.filter((r: any) => r.locationVerified).length,
-      };
-      const courseMap = new Map<string, { course: string; total: number; verified: number; pending: number; rejected: number }>();
-      for (const row of rows) {
-        const item = courseMap.get(row.course) || { course: row.course, total: 0, verified: 0, pending: 0, rejected: 0 };
-        item.total += 1;
-        if (row.status === 'Verified') item.verified += 1;
-        if (row.status === 'Pending Verification') item.pending += 1;
-        if (row.status === 'Rejected') item.rejected += 1;
-        courseMap.set(row.course, item);
-      }
-      return json({ summary, byCourse: Array.from(courseMap.values()).sort((a, b) => a.course.localeCompare(b.course)), rows });
+      }).map((r: any) => { const session = sessionMap.get(r.sessionId) as any; return { ...r, venue: session?.location || '', sessionStartedAt: session?.startsAt || r.checkedInAt, locationVerified: Boolean(r.locationVerified) }; }).sort((a: any,b: any)=>b.checkedInAt-a.checkedInAt);
+      const summary = { total: rows.length, verified: rows.filter((x: any)=>x.status==='Verified').length, pending: rows.filter((x: any)=>x.status==='Pending Verification').length, rejected: rows.filter((x: any)=>x.status==='Rejected').length, gpsVerified: rows.filter((x: any)=>x.locationVerified).length };
+      const map = new Map<string, any>();
+      for (const row of rows) { const item = map.get(row.course) || { course: row.course, total: 0, verified: 0, pending: 0, rejected: 0 }; item.total++; if(row.status==='Verified')item.verified++; if(row.status==='Pending Verification')item.pending++; if(row.status==='Rejected')item.rejected++; map.set(row.course,item); }
+      return json({ summary, byCourse: Array.from(map.values()).sort((a: any,b: any)=>a.course.localeCompare(b.course)), rows });
     },
   ],
   'GET /api/announcements': [
@@ -753,14 +707,7 @@ export const handler = router({
     async ({ user }) => {
       const p = await profileFor(user!);
       const r = await db.list<any>('afams_announcements', { limit: 200 });
-      const announcements = r.items.filter((item: any) =>
-        item.status === 'published' &&
-        (!item.expiresAt || item.expiresAt > now()) &&
-        (item.audience === 'all' ||
-          (item.audience === 'students' && p.role === 'student') ||
-          (item.audience === 'lecturers' && p.role === 'lecturer') ||
-          (item.audience === 'staff' && ['lecturer', 'administrator', 'super_admin'].includes(p.role)))
-      ).sort((a: any, b: any) => b.createdAt - a.createdAt);
+      const announcements = r.items.filter((item: any) => item.status === 'published' && (!item.expiresAt || item.expiresAt > now()) && (item.audience === 'all' || (item.audience === 'students' && ['student','class_rep'].includes(p.role)) || (item.audience === 'lecturers' && p.role === 'lecturer') || (item.audience === 'staff' && ['lecturer','administrator','super_admin'].includes(p.role)))).sort((a: any,b: any)=>b.createdAt-a.createdAt);
       return json({ announcements });
     },
   ],
@@ -810,29 +757,16 @@ export const handler = router({
     async ({ user }) => {
       try {
         const p = await profileFor(user!);
-        const [timetable, enrollments] = await Promise.all([
-          db.list('afams_timetable', { limit: 300 }),
-          p.role === 'student'
-            ? db.list('afams_enrollments', { limit: 300 })
-            : Promise.resolve({ items: [] as any[] }),
+        const [timetable, enrollments, assignments] = await Promise.all([
+          db.list<any>('afams_timetable', { limit: 300 }),
+          p.role === 'student' ? db.list<any>('afams_enrollments', { limit: 300 }) : Promise.resolve({ items: [] as any[] }),
+          p.role === 'class_rep' ? db.list<any>('afams_class_rep_courses', { limit: 500 }) : Promise.resolve({ items: [] as any[] }),
         ]);
-        const enrolledCourseIds = new Set(
-          enrollments.items
-            .filter((item: any) => item.studentId === p.userId && item.status === 'active')
-            .map((item: any) => item.courseId)
-        );
-        const visible = timetable.items.filter((item: any) => {
-          if (p.role === 'student') return enrolledCourseIds.has(item.courseId);
-          if (p.role === 'lecturer') return item.lecturerId === p.userId;
-          return true;
-        });
-        return json({ timetable: visible.sort((a: any, b: any) =>
-          String(a.dayOfWeek).localeCompare(String(b.dayOfWeek)) ||
-          String(a.startTime).localeCompare(String(b.startTime))
-        ), canManage: p.role !== 'student' });
-      } catch (e) {
-        return error(e instanceof Error ? e.message : 'Timetable unavailable.', 500);
-      }
+        const enrolled = new Set(enrollments.items.filter((x: any)=>x.studentId===p.userId&&x.status==='active').map((x: any)=>x.courseId));
+        const representative = new Set(assignments.items.filter((x: any)=>x.userId===p.userId).map((x: any)=>x.courseId));
+        const visible = timetable.items.filter((x: any)=>p.role==='student'?enrolled.has(x.courseId):p.role==='lecturer'?x.lecturerId===p.userId:p.role==='class_rep'?representative.has(x.courseId):true);
+        return json({ timetable: visible.sort((a: any,b: any)=>String(a.dayOfWeek).localeCompare(String(b.dayOfWeek))||String(a.startTime).localeCompare(String(b.startTime))), canManage: ['lecturer','administrator','super_admin'].includes(p.role) });
+      } catch (e) { return error(e instanceof Error ? e.message : 'Timetable unavailable.', 500); }
     },
   ],
   'POST /api/timetable': [
