@@ -127,6 +127,10 @@ function App() {
   const [minutes, setMinutes] = useState(25),
     [seconds, setSeconds] = useState(1500),
     [running, setRunning] = useState(false);
+  const [focusSessionId, setFocusSessionId] = useState('');
+  const [monitoringFocus, setMonitoringFocus] = useState(false);
+  const [focusMessage, setFocusMessage] = useState('');
+  const [focusPolicy, setFocusPolicy] = useState('standard');
   const role = profile?.role || 'student',
     canTeach = ['lecturer', 'administrator', 'super_admin'].includes(role),
     admin = ['administrator', 'super_admin'].includes(role);
@@ -166,6 +170,20 @@ function App() {
       live = false;
     };
   }, []);
+  useEffect(() => {
+    if (!monitoringFocus || !focusSessionId) return;
+    const handleVisibility = async () => {
+      const eventType = document.hidden ? 'hidden' : 'visible';
+      try {
+        const response = await api.post('/api/focus/events', { sessionId: focusSessionId, eventType });
+        setFocusMessage(eventType === 'hidden' ? 'Interruption recorded. Policy: ' + response.data.focusStatus : 'Focus session resumed.');
+      } catch (e: any) {
+        setFocusMessage(e?.response?.data?.error || e.message || 'Focus event could not be recorded.');
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [monitoringFocus, focusSessionId]);
   useEffect(() => {
     if (!running) return;
     const id = window.setInterval(
@@ -218,6 +236,7 @@ function App() {
         course: course.trim(),
         location: venue.trim(),
         durationMinutes: Number(duration),
+        focusPolicy,
         locationRequired: sessionLocationRequired,
         latitude: classroomPosition?.latitude,
         longitude: classroomPosition?.longitude,
@@ -661,6 +680,13 @@ function App() {
                 </div>
                 <span className="live">● FOCUS SPACE</span>
               </div>
+              {role === 'student' && <section className="panel focus-monitor">
+                <span className="eyebrow">CLASSROOM FOCUS MONITOR</span>
+                <h3>Monitor focus during a live class</h3>
+                <label>Active class session<select value={focusSessionId} onChange={e => setFocusSessionId(e.target.value)}><option value="">Select a checked-in class</option>{sessions.filter(s => s.status === 'active' && s.expiresAt > Date.now()).map(s => <option key={s.id} value={s.id}>{s.course} · {s.location || 'Class session'}</option>)}</select></label>
+                <button className={monitoringFocus ? 'outline' : 'primary'} disabled={!focusSessionId} onClick={() => setMonitoringFocus(value => !value)}>{monitoringFocus ? 'Stop focus monitoring' : 'Enable focus monitoring'}</button>
+                <p className="hint">{focusMessage || 'The browser records when this page is hidden and when you return. It cannot block other apps or detect activity outside this browser.'}</p>
+              </section>}
               <div className="focus-grid">
                 <section className="panel timer-panel">
                   <span className="eyebrow">DEEP WORK TIMER</span>
@@ -828,6 +854,7 @@ function App() {
                 placeholder="e.g. Lab 03"
               />
             </label>
+            <label>Focus policy<select value={focusPolicy} onChange={e => setFocusPolicy(e.target.value)}><option value="standard">Standard — lecturer reviews interruptions</option><option value="strict">Strict — interruption marks absent</option><option value="grace">Grace — 60 seconds to return</option></select></label>
             <label className="checkline"><input type="checkbox" checked={sessionLocationRequired} onChange={e => setSessionLocationRequired(e.target.checked)}/> Require GPS geofence verification (150 m)</label>
             {sessionLocationRequired && <p className="hint">Your browser will ask to share the classroom's current coordinates when you create this session.</p>}
             <label>
