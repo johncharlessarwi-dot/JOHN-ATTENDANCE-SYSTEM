@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import AcademicAdmin from './AcademicAdmin';
+import Timetable from './Timetable';
 import { auth, api } from '@appdeploy/client';
 import {
   Activity,
@@ -299,6 +300,7 @@ function App() {
     ['Overview', LayoutDashboard],
     ['Attendance', ScanLine],
     ['Sessions', CalendarDays],
+    ['Timetable', CalendarDays],
     ['Focus Client', Timer],
     ...(admin
       ? [
@@ -689,6 +691,7 @@ function App() {
             </>
           )}
           {view === 'Academic administration' && admin && <AcademicAdmin />}
+          {view === 'Timetable' && <Timetable role={role} />}
           {view === 'People' && admin && <People onSaved={refresh} />}
           {view === 'Audit trail' && admin && (
             <>
