@@ -24,6 +24,7 @@ type SessionRecord = {
   startsAt: number;
   expiresAt: number;
   status: string;
+  focusPolicy?: string;
   locationRequired?: boolean;
   latitude?: number;
   longitude?: number;
@@ -225,6 +226,7 @@ export const handler = router({
           startsAt,
           expiresAt: startsAt + duration * 60000,
           status: 'active',
+          focusPolicy: ['strict', 'grace', 'standard'].includes(String(b.focusPolicy)) ? String(b.focusPolicy) : 'standard',
           locationRequired,
           ...(locationRequired ? { latitude, longitude, radiusMeters } : {}),
         };
@@ -512,6 +514,56 @@ export const handler = router({
       const p = await profileFor(ctx.user!);
       await audit(p.userId, 'Academic record deleted', ctx.params.kind + ' · ' + id);
       return json({ ok: true });
+    },
+  ],
+  'POST /api/focus/events': [
+    requireAuth(),
+    async ctx => {
+      const p = await profileFor(ctx.user!);
+      if (p.role !== 'student') return error('Focus monitoring events are submitted by student accounts.', 403);
+      const b = (ctx.body || {}) as Record<string, unknown>;
+      const sessionId = clean(b.sessionId, 120);
+      const eventType = clean(b.eventType, 20);
+      if (!sessionId || !['hidden', 'visible'].includes(eventType))
+        return error('Provide a valid session and focus event.', 400);
+      const [session] = await db.get<any>('afams_sessions', [sessionId], { consistent: true });
+      if (!session || session.status !== 'active' || session.expiresAt <= now())
+        return error('The selected class session is no longer active.', 410);
+      const attendanceId = sessionId + '_' + p.userId;
+      const [record] = await db.get<any>('afams_attendance', [attendanceId], { consistent: true });
+      if (!record) return error('Check in to the class before starting focus monitoring.', 409);
+      if (record.status === 'Rejected') return error('This attendance record is already marked absent or rejected.', 409);
+      const policy = ['strict', 'grace', 'standard'].includes(session.focusPolicy) ? session.focusPolicy : 'standard';
+      const timestamp = now();
+      const eventId = 'fe_' + crypto.randomUUID().replace(/-/g, '');
+      await db.add('afams_focus_events', [{
+        id: eventId, sessionId, studentId: p.userId, eventType, policy, createdAt: timestamp,
+      }]);
+      const interruptions = Number(record.interruptions || 0) + (eventType === 'hidden' ? 1 : 0);
+      let patch: Record<string, unknown> = { interruptions, lastFocusEventAt: timestamp };
+      if (eventType === 'hidden') {
+        if (policy === 'strict') {
+          patch = { ...patch, status: 'Rejected', focusStatus: 'absent', focusReason: 'Strict focus policy interruption' };
+        } else if (policy === 'grace') {
+          patch = { ...patch, focusStatus: 'grace', focusGraceUntil: timestamp + 60000 };
+        } else {
+          patch = { ...patch, focusStatus: 'interrupted' };
+        }
+      } else if (record.focusStatus === 'grace') {
+        if (timestamp > Number(record.focusGraceUntil || 0)) {
+          patch = { ...patch, status: 'Rejected', focusStatus: 'absent', focusReason: 'Grace period exceeded' };
+        } else {
+          patch = { ...patch, focusStatus: 'resumed', focusGraceUntil: null };
+        }
+      } else {
+        patch = { ...patch, focusStatus: 'resumed' };
+      }
+      const [updated] = await db.tx.update('afams_attendance', [{
+        id: attendanceId, record: patch, if: { status: record.status },
+      }], { patch: true });
+      if (!updated) return error('Focus state changed concurrently. Refresh and retry.', 409);
+      await audit(p.userId, 'Focus ' + eventType, session.course + ' · ' + policy);
+      return json({ ok: true, focusStatus: patch.focusStatus || record.focusStatus, interruptions, attendanceStatus: patch.status || record.status });
     },
   ],
   'GET /api/reports/attendance': [
