@@ -25,12 +25,12 @@
     "expected": "Only published announcements for Everyone or Students are visible."
   },
   {
-    "name": "Student scans a session QR and submits attendance for review",
+    "name": "Student scans QR and checks in within the configured geofence",
     "viewport": "mobile",
-    "covers": ["QR code generation", "browser camera QR scanning", "time-limited attendance check-in", "pending attendance verification", "duplicate check-in prevention"],
-    "description": "Verifies the active session QR can be read by a supported mobile browser and creates a pending attendance record.",
-    "steps": ["Sign in as a Lecturer and create a live attendance session", "Display the session QR code", "Sign in as a Student on a supported mobile browser and open Check in", "Scan the QR code and submit the captured code"],
-    "expected": "The student receives a pending verification confirmation and cannot submit a second check-in for the same session."
+    "covers": ["QR code generation", "browser camera QR scanning", "GPS geofence attendance", "location accuracy validation", "pending attendance verification", "duplicate check-in prevention"],
+    "description": "Verifies a location-required session accepts a student inside the lecturer-configured radius and rejects missing or out-of-range location fixes.",
+    "steps": ["Sign in as a Lecturer and create a session with classroom geofencing enabled", "Capture the classroom coordinates and display the QR code", "Sign in as a Student inside the configured area and share device location", "Scan the QR and submit attendance", "Repeat from outside the configured radius"],
+    "expected": "A valid in-range check-in is stored as Pending Verification; missing, inaccurate or out-of-range coordinates are rejected."
   },
   {
     "name": "Lecturer verifies attendance only for own sessions and students cannot publish announcements",
