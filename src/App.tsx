@@ -6,6 +6,8 @@ import AnnouncementBoard from './AnnouncementBoard';
 import AttendanceReports from './AttendanceReports';
 import AIStudyHub from './AIStudyHub';
 import Achievements from './Achievements';
+import ClassRepDashboard from './ClassRepDashboard';
+import ClassRepAdmin from './ClassRepAdmin';
 import { QRCodeSVG } from 'qrcode.react';
 import { auth, api } from '@appdeploy/client';
 import {
@@ -40,7 +42,7 @@ import {
 } from 'lucide-react';
 import { Trophy } from 'lucide-react';
 
-type Role = 'student' | 'lecturer' | 'administrator' | 'super_admin';
+type Role = 'student' | 'lecturer' | 'class_rep' | 'administrator' | 'super_admin';
 type Profile = { userId: string; email?: string; name?: string; role: Role };
 type Session = {
   id: string;
@@ -76,6 +78,7 @@ const roleLabel: Record<Role, string> = {
   student: 'Student',
   lecturer: 'Lecturer',
   administrator: 'Administrator',
+  class_rep: 'Class Representative',
   super_admin: 'Super Admin',
 };
 const initials = (s = 'AF') =>
@@ -366,11 +369,13 @@ function App() {
     ['Reports', ClipboardList],
     ['AI Study Hub', Sparkles],
     ['Achievements', Trophy],
+    ...(role === 'class_rep' ? [['CR Dashboard', Users]] : []),
     ['Focus Client', Timer],
     ...(admin
       ? [
           ['Academic administration', BookOpen],
           ['People', Users],
+          ['Class Representatives', Users],
           ['Audit trail', ClipboardList],
         ]
       : []),
@@ -769,6 +774,8 @@ function App() {
           {view === 'Reports' && <AttendanceReports role={role} />}
           {view === 'AI Study Hub' && <AIStudyHub />}
           {view === 'Achievements' && <Achievements />}
+          {view === 'CR Dashboard' && role === 'class_rep' && <ClassRepDashboard />}
+          {view === 'Class Representatives' && admin && <ClassRepAdmin />}
           {view === 'People' && admin && <People onSaved={refresh} />}
           {view === 'Audit trail' && admin && (
             <>
@@ -1215,6 +1222,7 @@ function People({ onSaved }: { onSaved: () => void }) {
             >
               <option value="student">Student</option>
               <option value="lecturer">Lecturer</option>
+              <option value="class_rep">Class Representative</option>
               <option value="administrator">Administrator</option>
             </select>
           </label>
