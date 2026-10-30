@@ -635,7 +635,7 @@ function App() {
               </div>
               <section className="panel">
                 {filtered.length ? (
-                  filtered.map(s => <SessionRow key={s.id} s={s} />)
+                  filtered.map(s => <SessionRow key={s.id} s={s} canWrite={canTeach} />)
                 ) : (
                   <Empty
                     icon={<CalendarDays />}
@@ -1042,7 +1042,27 @@ function Metric({ icon, label, value }: any) {
     </div>
   );
 }
-function SessionRow({ s }: { s: Session }) {
+function NFCWriter({ code }: { code: string }) {
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState('');
+  async function writeTag() {
+    setBusy(true);
+    setMessage('');
+    try {
+      const Writer = (window as any).NDEFReader;
+      if (!Writer) throw new Error('Web NFC writing is not supported here. Use Android Chrome with NFC enabled.');
+      const ndef = new Writer();
+      await ndef.write({ records: [{ recordType: 'text', data: code }] });
+      setMessage('NFC tag programmed with this session code.');
+    } catch (e: any) {
+      setMessage(e.message || 'Could not write the NFC tag.');
+    } finally {
+      setBusy(false);
+    }
+  }
+  return <div className="nfc-writer"><button type="button" className="outline" disabled={busy} onClick={writeTag}><Radio size={14}/>{busy ? 'Hold tag near phone…' : 'Write NFC tag'}</button>{message && <small className="hint">{message}</small>}</div>;
+}
+function SessionRow({ s, canWrite = false }: { s: Session; canWrite?: boolean }) {
   const live = s.status === 'active' && s.expiresAt > Date.now();
   return (
     <div className="session-row">
@@ -1060,6 +1080,7 @@ function SessionRow({ s }: { s: Session }) {
         <small>ACCESS CODE</small>
         <b>{s.code}</b>
         {live && <QRCodeSVG value={s.code} size={72} level="M"/>}
+        {live && canWrite && <NFCWriter code={s.code} />}
       </div>
       <span className={live ? 'live' : 'closed'}>
         ● {live ? 'LIVE' : 'CLOSED'}
