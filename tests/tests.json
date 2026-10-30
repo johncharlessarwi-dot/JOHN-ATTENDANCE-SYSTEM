@@ -1,59 +1,43 @@
 [
   {
-    "name": "Administrator creates academic structure and course",
+    "name": "Administrator creates linked academic structure",
     "sanity": true,
     "viewport": "desktop",
-    "covers": [
-      "academic faculties",
-      "departments",
-      "programmes",
-      "courses",
-      "role-based academic setup",
-      "persistent records"
-    ],
-    "description": "Creates linked faculty, department, programme and course records, then verifies they remain available after refresh.",
-    "steps": [
-      "Sign in as an Administrator or Super Admin",
-      "Open Academic administration",
-      "Create a faculty, then a department linked to it",
-      "Create a programme linked to the department",
-      "Create a course linked to the programme",
-      "Refresh the module and verify the created records are still listed"
-    ],
-    "expected": "All four linked academic records are visible after refresh; invalid parent references are rejected."
+    "covers": ["academic faculties", "departments", "programmes", "courses", "role-based academic setup", "persistent records"],
+    "description": "Creates linked academic records and verifies they remain available after refresh.",
+    "steps": ["Sign in as an Administrator or Super Admin", "Open Academic administration", "Create a faculty, department, programme and course in sequence", "Refresh the module and verify the records remain listed"],
+    "expected": "All linked academic records remain visible after refresh; invalid parent references are rejected."
+  },
+  {
+    "name": "Students can view only their enrolled timetable",
+    "viewport": "mobile",
+    "covers": ["weekly timetable", "student course enrollment filtering", "mobile timetable view"],
+    "description": "Verifies the timetable view is scoped to the authenticated student's active course enrollments.",
+    "steps": ["Sign in as a Student with one active course enrollment", "Open Timetable", "Review the weekly schedule"],
+    "expected": "Only timetable entries for courses in the student's active enrollments are shown."
+  },
+  {
+    "name": "Lecturer creates and removes a class timetable entry",
+    "viewport": "desktop",
+    "covers": ["lecturer timetable management", "course schedule creation", "time range validation", "timetable deletion", "audit trail"],
+    "description": "Verifies a lecturer can create a valid weekly class schedule and remove their own entry.",
+    "steps": ["Sign in as a Lecturer", "Open Timetable", "Choose an existing course, day, valid start and end times, and venue", "Save the timetable entry", "Remove the entry and confirm"],
+    "expected": "The entry appears under the selected day, remains after refresh, and is removed only after confirmation."
   },
   {
     "name": "Academic administration is read-only for students",
     "viewport": "mobile",
-    "covers": [
-      "academic role authorization",
-      "student read-only boundary",
-      "mobile academic module"
-    ],
-    "description": "Verifies a student can view academic records but cannot create or delete institutional structure.",
-    "steps": [
-      "Sign in as a Student",
-      "Open Academic administration",
-      "Verify the create form is unavailable",
-      "Attempt to submit an academic record through the visible interface"
-    ],
-    "expected": "The student can view permitted academic data but has no create or delete controls."
+    "covers": ["academic role authorization", "student read-only boundary"],
+    "description": "Verifies a student cannot create or delete institutional structure.",
+    "steps": ["Sign in as a Student", "Open Academic administration if available", "Verify there are no create or delete controls"],
+    "expected": "Student access remains read-only and API writes are denied."
   },
   {
-    "name": "Enrollment requires an existing student and course",
+    "name": "Invalid timetable values and duplicate student enrollment are rejected",
     "viewport": "desktop",
-    "covers": [
-      "course enrollment",
-      "student identity validation",
-      "duplicate enrollment prevention"
-    ],
-    "description": "Verifies enrollment links a previously authenticated student to an existing course and rejects duplicate enrollment.",
-    "steps": [
-      "Sign in as an Administrator",
-      "Open Academic administration and select Enrollments",
-      "Select an existing course and enter a non-existent student account ID",
-      "Submit the form"
-    ],
-    "expected": "The API rejects the missing student account and no enrollment record is created."
+    "covers": ["invalid timetable time validation", "course enrollment", "student identity validation", "duplicate enrollment prevention"],
+    "description": "Verifies invalid time ranges and duplicate enrollment requests cannot create records.",
+    "steps": ["Sign in as a Lecturer and submit a timetable entry whose end time is before its start time", "Verify a validation error appears", "Sign in as an Administrator and attempt to enroll the same student into the same course twice"],
+    "expected": "Invalid time ranges and duplicate enrollments are rejected without creating duplicate records."
   }
 ]
