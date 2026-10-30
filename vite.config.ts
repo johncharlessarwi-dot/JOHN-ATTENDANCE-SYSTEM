@@ -4,6 +4,11 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   base: './',
+  resolve: {
+    alias: process.env.CI === 'true'
+      ? { '@appdeploy/client': '/src/testing/appdeploy-client.ts' }
+      : {},
+  },
   build: {
     outDir: process.env.APPDEPLOY_VITE_OUT_DIR || 'dist',
     sourcemap:
