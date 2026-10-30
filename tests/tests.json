@@ -9,6 +9,22 @@
     "expected": "All linked academic records remain visible after refresh; invalid parent references are rejected."
   },
   {
+    "name": "Student scans a session QR and submits attendance for review",
+    "viewport": "mobile",
+    "covers": ["QR code generation", "browser camera QR scanning", "time-limited attendance check-in", "pending attendance verification", "duplicate check-in prevention"],
+    "description": "Verifies the active session QR can be read by a supported mobile browser and creates a pending attendance record.",
+    "steps": ["Sign in as a Lecturer and create a live attendance session", "Display the session QR code", "Sign in as a Student on a supported mobile browser and open Check in", "Scan the QR code and submit the captured code"],
+    "expected": "The student receives a pending verification confirmation and cannot submit a second check-in for the same session."
+  },
+  {
+    "name": "Lecturer verifies or rejects attendance only for own sessions",
+    "viewport": "desktop",
+    "covers": ["lecturer attendance review queue", "attendance approval", "attendance rejection", "review ownership authorization", "audit trail"],
+    "description": "Verifies a lecturer can make a single review decision for pending records belonging to their own sessions.",
+    "steps": ["Sign in as a Lecturer", "Open Review attendance", "Verify a pending record from a session they created", "Attempt to review a record from another lecturer's session"],
+    "expected": "The owned record changes to Verified or Rejected; another lecturer's record is denied and reviewed records cannot be changed again."
+  },
+  {
     "name": "Students can view only their enrolled timetable",
     "viewport": "mobile",
     "covers": ["weekly timetable", "student course enrollment filtering", "mobile timetable view"],
@@ -17,27 +33,11 @@
     "expected": "Only timetable entries for courses in the student's active enrollments are shown."
   },
   {
-    "name": "Lecturer creates and removes a class timetable entry",
+    "name": "Academic administration is read-only for students and invalid decisions are rejected",
     "viewport": "desktop",
-    "covers": ["lecturer timetable management", "course schedule creation", "time range validation", "timetable deletion", "audit trail"],
-    "description": "Verifies a lecturer can create a valid weekly class schedule and remove their own entry.",
-    "steps": ["Sign in as a Lecturer", "Open Timetable", "Choose an existing course, day, valid start and end times, and venue", "Save the timetable entry", "Remove the entry and confirm"],
-    "expected": "The entry appears under the selected day, remains after refresh, and is removed only after confirmation."
-  },
-  {
-    "name": "Academic administration is read-only for students",
-    "viewport": "mobile",
-    "covers": ["academic role authorization", "student read-only boundary"],
-    "description": "Verifies a student cannot create or delete institutional structure.",
-    "steps": ["Sign in as a Student", "Open Academic administration if available", "Verify there are no create or delete controls"],
-    "expected": "Student access remains read-only and API writes are denied."
-  },
-  {
-    "name": "Invalid timetable values and duplicate student enrollment are rejected",
-    "viewport": "desktop",
-    "covers": ["invalid timetable time validation", "course enrollment", "student identity validation", "duplicate enrollment prevention"],
-    "description": "Verifies invalid time ranges and duplicate enrollment requests cannot create records.",
-    "steps": ["Sign in as a Lecturer and submit a timetable entry whose end time is before its start time", "Verify a validation error appears", "Sign in as an Administrator and attempt to enroll the same student into the same course twice"],
-    "expected": "Invalid time ranges and duplicate enrollments are rejected without creating duplicate records."
+    "covers": ["academic role authorization", "student read-only boundary", "attendance decision validation", "invalid status transition"],
+    "description": "Verifies student writes are denied and attendance records cannot be moved into unsupported review states.",
+    "steps": ["Sign in as a Student and attempt to access attendance review", "Attempt to submit an invalid attendance decision", "Verify the request is denied"],
+    "expected": "Students cannot review attendance and only Verified or Rejected decisions are accepted for pending records."
   }
 ]
