@@ -25,3 +25,9 @@ export function filterReportDates<T extends { checkedInAt: number }>(rows: T[], 
   if (Number.isNaN(start) || Number.isNaN(end) || start > end) return [];
   return rows.filter(row => row.checkedInAt >= start && row.checkedInAt <= end);
 }
+
+export type GpsFilter = 'all' | 'verified' | 'not-verified';
+export function filterReportGps<T extends { locationVerified: boolean }>(rows: T[], filter: GpsFilter): T[] {
+  if (filter === 'all') return rows;
+  return rows.filter(row => row.locationVerified === (filter === 'verified'));
+}

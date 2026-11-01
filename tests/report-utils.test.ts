@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { csvCell, filterReportCourse, filterReportDates, filterReportStatus, searchReportRows } from '../src/report-utils';
+import { csvCell, filterReportCourse, filterReportDates, filterReportGps, filterReportStatus, searchReportRows } from '../src/report-utils';
 
 describe('CSV export safety', () => {
   it('quotes commas and double quotes', () => {
@@ -39,4 +39,11 @@ it('filters report records by an inclusive local calendar date interval', () => 
   const rows = [{ checkedInAt: new Date('2026-11-01T12:00:00').getTime() }, { checkedInAt: new Date('2026-11-03T12:00:00').getTime() }];
   expect(filterReportDates(rows, '2026-11-01', '2026-11-01')).toEqual([rows[0]]);
   expect(filterReportDates(rows, '2026-11-03', '2026-11-01')).toEqual([]);
+});
+
+it('filters verified versus unverified geofence records', () => {
+  const rows = [{ locationVerified: true }, { locationVerified: false }];
+  expect(filterReportGps(rows, 'verified')).toEqual([rows[0]]);
+  expect(filterReportGps(rows, 'not-verified')).toEqual([rows[1]]);
+  expect(filterReportGps(rows, 'all')).toEqual(rows);
 });
