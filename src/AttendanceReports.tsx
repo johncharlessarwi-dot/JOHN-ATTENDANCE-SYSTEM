@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { api } from '@appdeploy/client';
-import * as XLSX from 'xlsx';
 import { Download, FileSpreadsheet, RefreshCw, Search, ShieldCheck } from 'lucide-react';
 import { csvCell, filterReportCourse, filterReportDates, filterReportGps, filterReportStatus, paginateReportRows, searchReportRows, sortReportRows, spreadsheetSafeText, type GpsFilter, type ReportSort } from './report-utils';
 
@@ -81,13 +80,19 @@ export default function AttendanceReports({ role }: { role: Role }) {
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  function exportExcel() {
+  async function exportExcel() {
     if (!visibleRows.length) return;
-    const rows = visibleRows.map(row => ({ 'Attendance ID': spreadsheetSafeText(row.id), Course: spreadsheetSafeText(row.course), 'Student ID': spreadsheetSafeText(row.studentId), 'Checked In At': stamp(row.checkedInAt), Status: spreadsheetSafeText(row.status), Venue: spreadsheetSafeText(row.venue), 'GPS Verified': row.locationVerified ? 'Yes' : 'No' }));
-    const sheet = XLSX.utils.json_to_sheet(rows);
-    const book = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(book, sheet, 'Attendance');
-    XLSX.writeFile(book, 'AFAMS-attendance-filtered.xlsx');
+    try {
+      // Only download the spreadsheet library when an export is requested.
+      const XLSX = await import('xlsx');
+      const rows = visibleRows.map(row => ({ 'Attendance ID': spreadsheetSafeText(row.id), Course: spreadsheetSafeText(row.course), 'Student ID': spreadsheetSafeText(row.studentId), 'Checked In At': stamp(row.checkedInAt), Status: spreadsheetSafeText(row.status), Venue: spreadsheetSafeText(row.venue), 'GPS Verified': row.locationVerified ? 'Yes' : 'No' }));
+      const sheet = XLSX.utils.json_to_sheet(rows);
+      const book = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(book, sheet, 'Attendance');
+      XLSX.writeFile(book, 'AFAMS-attendance-filtered.xlsx');
+    } catch {
+      setMessage('Excel export failed. Try CSV or retry after reconnecting.');
+    }
   }
 
   async function refresh() {
