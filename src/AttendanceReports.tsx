@@ -70,8 +70,11 @@ export default function AttendanceReports({ role }: { role: Role }) {
     const anchor = document.createElement('a');
     anchor.href = url;
     anchor.download = 'AFAMS-attendance-filtered.csv';
+    document.body.appendChild(anchor);
     anchor.click();
-    URL.revokeObjectURL(url);
+    anchor.remove();
+    // Allow the browser to start its download before releasing the object URL.
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   function exportExcel() {
