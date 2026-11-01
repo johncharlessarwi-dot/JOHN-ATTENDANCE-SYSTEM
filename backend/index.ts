@@ -7,6 +7,7 @@ import {
   db,
   ai,
 } from '@appdeploy/sdk';
+import { isReliableGpsFix } from './geo';
 const ADMIN_EMAILS = ['johncharlessarwi@gmail.com'];
 type Role = 'student' | 'lecturer' | 'class_rep' | 'administrator' | 'super_admin';
 type UserRecord = {
@@ -203,7 +204,7 @@ export const handler = router({
       const longitude = Number(b.longitude);
       const accuracy = Number(b.accuracy);
       if (s.locationRequired) {
-        if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 || !Number.isFinite(longitude) || longitude < -180 || longitude > 180 || !Number.isFinite(accuracy) || accuracy > 100)
+        if (!isReliableGpsFix(latitude, longitude, accuracy))
           return error('This session requires a location fix with accuracy of 100 metres or better. Share your current location and retry.', 403);
         const toRadians = (value: number) => value * Math.PI / 180;
         const dLat = toRadians(latitude - Number(s.latitude));
