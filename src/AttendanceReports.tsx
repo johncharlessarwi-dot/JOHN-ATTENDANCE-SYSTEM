@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@appdeploy/client';
 import * as XLSX from 'xlsx';
 import { Download, FileSpreadsheet, RefreshCw, ShieldCheck } from 'lucide-react';
+import { csvCell } from './report-utils';
 
 type Role = 'student' | 'lecturer' | 'class_rep' | 'administrator' | 'super_admin';
 type ReportRow = {
@@ -20,11 +21,6 @@ type ReportData = {
 };
 
 const stamp = (value: number) => new Date(value).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
-
-function csvCell(value: unknown) {
-  const text = String(value ?? '');
-  return '"' + text.replace(/"/g, '""') + '"';
-}
 
 export default function AttendanceReports({ role }: { role: Role }) {
   const [data, setData] = useState<ReportData | null>(null);
