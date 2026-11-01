@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { csvCell, filterReportCourse, filterReportDates, filterReportGps, filterReportStatus, searchReportRows } from '../src/report-utils';
+import { csvCell, filterReportCourse, filterReportDates, filterReportGps, filterReportStatus, searchReportRows, sortReportRows } from '../src/report-utils';
 
 describe('CSV export safety', () => {
   it('quotes commas and double quotes', () => {
@@ -46,4 +46,12 @@ it('filters verified versus unverified geofence records', () => {
   expect(filterReportGps(rows, 'verified')).toEqual([rows[0]]);
   expect(filterReportGps(rows, 'not-verified')).toEqual([rows[1]]);
   expect(filterReportGps(rows, 'all')).toEqual(rows);
+});
+
+it('sorts records without mutating the source dataset', () => {
+  const rows = [{ course: 'CSC 125', checkedInAt: 3 }, { course: 'CSC 111', checkedInAt: 1 }];
+  expect(sortReportRows(rows, 'oldest')[0]).toBe(rows[1]);
+  expect(sortReportRows(rows, 'newest')[0]).toBe(rows[0]);
+  expect(sortReportRows(rows, 'course')[0]).toBe(rows[1]);
+  expect(rows[0].course).toBe('CSC 125');
 });

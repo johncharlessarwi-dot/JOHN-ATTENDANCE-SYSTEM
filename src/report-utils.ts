@@ -31,3 +31,10 @@ export function filterReportGps<T extends { locationVerified: boolean }>(rows: T
   if (filter === 'all') return rows;
   return rows.filter(row => row.locationVerified === (filter === 'verified'));
 }
+
+export type ReportSort = 'newest' | 'oldest' | 'course';
+export function sortReportRows<T extends { checkedInAt: number; course: string }>(rows: T[], sort: ReportSort): T[] {
+  return [...rows].sort((a, b) => sort === 'course'
+    ? a.course.localeCompare(b.course) || b.checkedInAt - a.checkedInAt
+    : sort === 'oldest' ? a.checkedInAt - b.checkedInAt : b.checkedInAt - a.checkedInAt);
+}
