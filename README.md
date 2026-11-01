@@ -47,7 +47,7 @@ You can start the Vite interface with `npm run dev`, but AppDeploy-specific auth
 - Exported reports can contain student identifiers: only authorized staff should download, share, and retain them.
 - Never put passwords, private keys, access tokens, or student data exports in Git.
 
-See [implementation audit](docs/IMPLEMENTATION-AUDIT.md) and [requirements tracking](docs/REQUIREMENTS-COMPLIANCE.md).
+See [implementation audit](docs/IMPLEMENTATION-AUDIT.md), [requirements tracking](docs/REQUIREMENTS-COMPLIANCE.md) and [reporting guide](docs/REPORTS-GUIDE.md).
 
 ## Roadmap
 
