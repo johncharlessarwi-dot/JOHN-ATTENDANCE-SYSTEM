@@ -54,10 +54,14 @@ export default function AttendanceReports({ role }: { role: Role }) {
   async function load() {
     const response = await api.get('/api/reports/attendance');
     setData(response.data);
+    setMessage('');
   }
 
   useEffect(() => {
-    load().catch((e: any) => setMessage(e?.response?.data?.error || e.message || 'Could not load reports.'));
+    load().catch((e: any) => {
+      setData(null);
+      setMessage(e?.response?.data?.error || e.message || 'Could not load reports.');
+    });
   }, []);
 
   function exportCsv() {
@@ -89,7 +93,7 @@ export default function AttendanceReports({ role }: { role: Role }) {
   async function refresh() {
     setBusy(true);
     try { await load(); setMessage('Report refreshed.'); }
-    catch (e: any) { setMessage(e?.response?.data?.error || e.message || 'Refresh failed.'); }
+    catch (e: any) { setData(null); setMessage(e?.response?.data?.error || e.message || 'Refresh failed. Please sign in again if your access changed.'); }
     finally { setBusy(false); }
   }
 
