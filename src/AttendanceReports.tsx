@@ -49,15 +49,15 @@ export default function AttendanceReports({ role }: { role: Role }) {
   }, []);
 
   function exportCsv() {
-    if (!data) return;
+    if (!visibleRows.length) return;
     const headers = ['Attendance ID', 'Course', 'Student ID', 'Checked In At', 'Status', 'Venue', 'GPS Verified'];
-    const rows = data.rows.map(row => [row.id, row.course, row.studentId, stamp(row.checkedInAt), row.status, row.venue, row.locationVerified ? 'Yes' : 'No']);
+    const rows = visibleRows.map(row => [row.id, row.course, row.studentId, stamp(row.checkedInAt), row.status, row.venue, row.locationVerified ? 'Yes' : 'No']);
     const csv = [headers, ...rows].map(row => row.map(csvCell).join(',')).join('\r\n');
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = 'AFAMS-attendance-report.csv';
+    anchor.download = 'AFAMS-attendance-filtered.csv';
     anchor.click();
     URL.revokeObjectURL(url);
   }
@@ -81,7 +81,7 @@ export default function AttendanceReports({ role }: { role: Role }) {
   return <>
     <div className="heading">
       <div><span className="eyebrow">ACADEMIC PERFORMANCE DATA</span><h1>Attendance reports</h1><p>{role === 'student' ? 'Your personal attendance history.' : 'Review attendance outcomes and export records for analysis.'}</p></div>
-      <div className="toolbar-actions"><button className="outline" onClick={refresh}><RefreshCw size={16}/>{busy ? 'Refreshing…' : 'Refresh'}</button><button className="outline" onClick={() => window.print()}><FileSpreadsheet size={16}/> Save PDF</button><button className="outline" disabled={!data?.rows.length} onClick={exportExcel}><Download size={16}/> Export Excel</button><button className="primary" disabled={!data?.rows.length} onClick={exportCsv}><Download size={16}/> Export CSV</button></div>
+      <div className="toolbar-actions"><button className="outline" onClick={refresh}><RefreshCw size={16}/>{busy ? 'Refreshing…' : 'Refresh'}</button><button className="outline" onClick={() => window.print()}><FileSpreadsheet size={16}/> Save PDF</button><button className="outline" disabled={!data?.rows.length} onClick={exportExcel}><Download size={16}/> Export Excel</button><button className="primary" disabled={!visibleRows.length} onClick={exportCsv}><Download size={16}/> Export filtered CSV</button></div>
     </div>
     {message && <p className="message">{message}</p>}
     {data && <>
