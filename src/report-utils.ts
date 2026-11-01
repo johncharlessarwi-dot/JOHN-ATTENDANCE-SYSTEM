@@ -1,7 +1,11 @@
 /** Prevent spreadsheet formula evaluation while preserving CSV readability. */
-export function csvCell(value: unknown): string {
+export function spreadsheetSafeText(value: unknown): string {
   const raw = String(value ?? '');
-  const escaped = /^[\s]*[=+\-@]/.test(raw) ? `'${raw}` : raw;
+  return /^[\s]*[=+\-@]/.test(raw) ? `'${raw}` : raw;
+}
+
+export function csvCell(value: unknown): string {
+  const escaped = spreadsheetSafeText(value);
   return '"' + escaped.replace(/"/g, '""') + '"';
 }
 

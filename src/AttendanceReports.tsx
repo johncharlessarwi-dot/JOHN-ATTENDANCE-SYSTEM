@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@appdeploy/client';
 import * as XLSX from 'xlsx';
 import { Download, FileSpreadsheet, RefreshCw, Search, ShieldCheck } from 'lucide-react';
-import { csvCell, filterReportCourse, filterReportDates, filterReportGps, filterReportStatus, paginateReportRows, searchReportRows, sortReportRows, type GpsFilter, type ReportSort } from './report-utils';
+import { csvCell, filterReportCourse, filterReportDates, filterReportGps, filterReportStatus, paginateReportRows, searchReportRows, sortReportRows, spreadsheetSafeText, type GpsFilter, type ReportSort } from './report-utils';
 
 type Role = 'student' | 'lecturer' | 'class_rep' | 'administrator' | 'super_admin';
 type ReportRow = {
@@ -76,7 +76,7 @@ export default function AttendanceReports({ role }: { role: Role }) {
 
   function exportExcel() {
     if (!visibleRows.length) return;
-    const rows = visibleRows.map(row => ({ 'Attendance ID': row.id, Course: row.course, 'Student ID': row.studentId, 'Checked In At': stamp(row.checkedInAt), Status: row.status, Venue: row.venue, 'GPS Verified': row.locationVerified ? 'Yes' : 'No' }));
+    const rows = visibleRows.map(row => ({ 'Attendance ID': spreadsheetSafeText(row.id), Course: spreadsheetSafeText(row.course), 'Student ID': spreadsheetSafeText(row.studentId), 'Checked In At': stamp(row.checkedInAt), Status: spreadsheetSafeText(row.status), Venue: spreadsheetSafeText(row.venue), 'GPS Verified': row.locationVerified ? 'Yes' : 'No' }));
     const sheet = XLSX.utils.json_to_sheet(rows);
     const book = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(book, sheet, 'Attendance');
