@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { csvCell, searchReportRows } from '../src/report-utils';
+import { csvCell, filterReportStatus, searchReportRows } from '../src/report-utils';
 
 describe('CSV export safety', () => {
   it('quotes commas and double quotes', () => {
@@ -21,4 +21,10 @@ describe('report text search', () => {
     expect(searchReportRows(records, 'CSC 112')).toEqual([records[0]]);
     expect(searchReportRows(records, ' t001 ')).toEqual([records[0]]);
   });
+});
+
+it('filters report records by exact review status', () => {
+  const rows = [{ status: 'Verified' }, { status: 'Pending Verification' }];
+  expect(filterReportStatus(rows, 'Verified')).toEqual([rows[0]]);
+  expect(filterReportStatus(rows, '')).toEqual(rows);
 });

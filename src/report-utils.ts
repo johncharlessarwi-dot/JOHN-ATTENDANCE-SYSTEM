@@ -10,3 +10,7 @@ export function searchReportRows<T extends { course: string; studentId: string; 
   if (!term) return rows;
   return rows.filter(row => [row.course, row.studentId, row.venue].some(value => value.toLocaleLowerCase().includes(term)));
 }
+
+export function filterReportStatus<T extends { status: string }>(rows: T[], status: string): T[] {
+  return status ? rows.filter(row => row.status === status) : rows;
+}
