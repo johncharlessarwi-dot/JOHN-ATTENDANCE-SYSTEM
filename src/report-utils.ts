@@ -14,3 +14,7 @@ export function searchReportRows<T extends { course: string; studentId: string; 
 export function filterReportStatus<T extends { status: string }>(rows: T[], status: string): T[] {
   return status ? rows.filter(row => row.status === status) : rows;
 }
+
+export function filterReportCourse<T extends { course: string }>(rows: T[], course: string): T[] {
+  return course ? rows.filter(row => row.course === course) : rows;
+}
