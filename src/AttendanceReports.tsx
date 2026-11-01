@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { api } from '@appdeploy/client';
 import * as XLSX from 'xlsx';
-import { Download, FileSpreadsheet, RefreshCw, ShieldCheck } from 'lucide-react';
-import { csvCell } from './report-utils';
+import { Download, FileSpreadsheet, RefreshCw, Search, ShieldCheck } from 'lucide-react';
+import { csvCell, searchReportRows } from './report-utils';
 
 type Role = 'student' | 'lecturer' | 'class_rep' | 'administrator' | 'super_admin';
 type ReportRow = {
@@ -26,6 +26,8 @@ export default function AttendanceReports({ role }: { role: Role }) {
   const [data, setData] = useState<ReportData | null>(null);
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const [query, setQuery] = useState('');
+  const visibleRows = data ? searchReportRows(data.rows, query) : [];
 
   async function load() {
     const response = await api.get('/api/reports/attendance');
@@ -84,8 +86,9 @@ export default function AttendanceReports({ role }: { role: Role }) {
         {data.byCourse.length ? data.byCourse.map(course => <div className="audit-row" key={course.course}><FileSpreadsheet/><div><b>{course.course}</b><small>{course.total} records · {course.verified} verified · {course.pending} pending · {course.rejected} rejected</small></div></div>) : <div className="empty"><FileSpreadsheet/><b>No report data</b><small>Attendance records will appear here when students check in.</small></div>}
       </section>
       <section className="panel">
-        <div className="panel-title"><div><span className="eyebrow">DETAILED RECORDS</span><h3>{data.rows.length} attendance records</h3></div></div>
-        <div className="table-wrap"><table><thead><tr><th>COURSE</th><th>STUDENT ID</th><th>CHECKED IN</th><th>STATUS</th><th>GPS</th></tr></thead><tbody>{data.rows.map(row => <tr key={row.id}><td>{row.course}</td><td><code>{role === 'student' ? 'You' : row.studentId.slice(0, 12)}</code></td><td>{stamp(row.checkedInAt)}</td><td>{row.status}</td><td>{row.locationVerified ? 'Verified' : '—'}</td></tr>)}</tbody></table></div>
+        <div className="panel-title"><div><span className="eyebrow">DETAILED RECORDS</span><h3>{visibleRows.length} attendance records</h3></div></div>
+        <label className="search" aria-label="Search attendance records"><Search size={16}/><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search course, student or venue" /></label>
+        <div className="table-wrap"><table><thead><tr><th>COURSE</th><th>STUDENT ID</th><th>CHECKED IN</th><th>STATUS</th><th>GPS</th></tr></thead><tbody>{visibleRows.map(row => <tr key={row.id}><td>{row.course}</td><td><code>{role === 'student' ? 'You' : row.studentId.slice(0, 12)}</code></td><td>{stamp(row.checkedInAt)}</td><td>{row.status}</td><td>{row.locationVerified ? 'Verified' : '—'}</td></tr>)}</tbody></table></div>
       </section>
     </>}
   </>;
