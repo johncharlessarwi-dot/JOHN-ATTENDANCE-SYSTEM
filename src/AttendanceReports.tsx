@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@appdeploy/client';
 import * as XLSX from 'xlsx';
 import { Download, FileSpreadsheet, RefreshCw, Search, ShieldCheck } from 'lucide-react';
-import { csvCell, filterReportCourse, filterReportStatus, searchReportRows } from './report-utils';
+import { csvCell, filterReportCourse, filterReportDates, filterReportStatus, searchReportRows } from './report-utils';
 
 type Role = 'student' | 'lecturer' | 'class_rep' | 'administrator' | 'super_admin';
 type ReportRow = {
@@ -29,7 +29,9 @@ export default function AttendanceReports({ role }: { role: Role }) {
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [courseFilter, setCourseFilter] = useState('');
-  const visibleRows = data ? filterReportCourse(filterReportStatus(searchReportRows(data.rows, query), statusFilter), courseFilter) : [];
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const visibleRows = data ? filterReportDates(filterReportCourse(filterReportStatus(searchReportRows(data.rows, query), statusFilter), courseFilter), dateFrom, dateTo) : [];
   const statusOptions = data ? [...new Set(data.rows.map(row => row.status))].sort() : [];
   const courseOptions = data ? [...new Set(data.rows.map(row => row.course))].sort() : [];
 
@@ -91,7 +93,7 @@ export default function AttendanceReports({ role }: { role: Role }) {
       </section>
       <section className="panel">
         <div className="panel-title"><div><span className="eyebrow">DETAILED RECORDS</span><h3>{visibleRows.length} attendance records</h3></div></div>
-        <div className="toolbar"><label className="search" aria-label="Search attendance records"><Search size={16}/><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search course, student or venue" /></label><label className="report-filter-label">Review status<select value={statusFilter} onChange={event => setStatusFilter(event.target.value)}><option value="">All statuses</option>{statusOptions.map(status => <option value={status} key={status}>{status}</option>)}</select></label><label className="report-filter-label">Course<select value={courseFilter} onChange={event => setCourseFilter(event.target.value)}><option value="">All courses</option>{courseOptions.map(course => <option value={course} key={course}>{course}</option>)}</select></label></div>
+        <div className="toolbar report-toolbar"><label className="search" aria-label="Search attendance records"><Search size={16}/><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search course, student or venue" /></label><label className="report-filter-label">Review status<select value={statusFilter} onChange={event => setStatusFilter(event.target.value)}><option value="">All statuses</option>{statusOptions.map(status => <option value={status} key={status}>{status}</option>)}</select></label><label className="report-filter-label">Course<select value={courseFilter} onChange={event => setCourseFilter(event.target.value)}><option value="">All courses</option>{courseOptions.map(course => <option value={course} key={course}>{course}</option>)}</select></label><label className="report-filter-label">From<input type="date" value={dateFrom} onChange={event => setDateFrom(event.target.value)} /></label><label className="report-filter-label">To<input type="date" min={dateFrom || undefined} value={dateTo} onChange={event => setDateTo(event.target.value)} /></label></div>
         <div className="table-wrap"><table><thead><tr><th>COURSE</th><th>STUDENT ID</th><th>CHECKED IN</th><th>STATUS</th><th>GPS</th></tr></thead><tbody>{visibleRows.map(row => <tr key={row.id}><td>{row.course}</td><td><code>{role === 'student' ? 'You' : row.studentId.slice(0, 12)}</code></td><td>{stamp(row.checkedInAt)}</td><td>{row.status}</td><td>{row.locationVerified ? 'Verified' : '—'}</td></tr>)}</tbody></table></div>
       </section>
     </>}

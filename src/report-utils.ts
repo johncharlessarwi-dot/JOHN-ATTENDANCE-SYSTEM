@@ -18,3 +18,10 @@ export function filterReportStatus<T extends { status: string }>(rows: T[], stat
 export function filterReportCourse<T extends { course: string }>(rows: T[], course: string): T[] {
   return course ? rows.filter(row => row.course === course) : rows;
 }
+
+export function filterReportDates<T extends { checkedInAt: number }>(rows: T[], from: string, to: string): T[] {
+  const start = from ? new Date(`${from}T00:00:00`).getTime() : Number.NEGATIVE_INFINITY;
+  const end = to ? new Date(`${to}T23:59:59.999`).getTime() : Number.POSITIVE_INFINITY;
+  if (Number.isNaN(start) || Number.isNaN(end) || start > end) return [];
+  return rows.filter(row => row.checkedInAt >= start && row.checkedInAt <= end);
+}

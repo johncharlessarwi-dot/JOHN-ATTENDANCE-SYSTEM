@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { csvCell, filterReportCourse, filterReportStatus, searchReportRows } from '../src/report-utils';
+import { csvCell, filterReportCourse, filterReportDates, filterReportStatus, searchReportRows } from '../src/report-utils';
 
 describe('CSV export safety', () => {
   it('quotes commas and double quotes', () => {
@@ -33,4 +33,10 @@ it('limits report records to a selected course', () => {
   const rows = [{ course: 'CSC 111' }, { course: 'CSC 125' }];
   expect(filterReportCourse(rows, 'CSC 125')).toEqual([rows[1]]);
   expect(filterReportCourse(rows, '')).toEqual(rows);
+});
+
+it('filters report records by an inclusive local calendar date interval', () => {
+  const rows = [{ checkedInAt: new Date('2026-11-01T12:00:00').getTime() }, { checkedInAt: new Date('2026-11-03T12:00:00').getTime() }];
+  expect(filterReportDates(rows, '2026-11-01', '2026-11-01')).toEqual([rows[0]]);
+  expect(filterReportDates(rows, '2026-11-03', '2026-11-01')).toEqual([]);
 });
