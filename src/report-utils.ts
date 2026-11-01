@@ -38,3 +38,11 @@ export function sortReportRows<T extends { checkedInAt: number; course: string }
     ? a.course.localeCompare(b.course) || b.checkedInAt - a.checkedInAt
     : sort === 'oldest' ? a.checkedInAt - b.checkedInAt : b.checkedInAt - a.checkedInAt);
 }
+
+export function paginateReportRows<T>(rows: T[], requestedPage: number, pageSize = 20) {
+  const safeSize = Math.max(1, Math.min(100, Math.floor(pageSize) || 20));
+  const pages = Math.max(1, Math.ceil(rows.length / safeSize));
+  const page = Math.max(1, Math.min(pages, Math.floor(requestedPage) || 1));
+  const offset = (page - 1) * safeSize;
+  return { rows: rows.slice(offset, offset + safeSize), page, pages, total: rows.length };
+}

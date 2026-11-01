@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { csvCell, filterReportCourse, filterReportDates, filterReportGps, filterReportStatus, searchReportRows, sortReportRows } from '../src/report-utils';
+import { csvCell, filterReportCourse, filterReportDates, filterReportGps, filterReportStatus, paginateReportRows, searchReportRows, sortReportRows } from '../src/report-utils';
 
 describe('CSV export safety', () => {
   it('quotes commas and double quotes', () => {
@@ -54,4 +54,11 @@ it('sorts records without mutating the source dataset', () => {
   expect(sortReportRows(rows, 'newest')[0]).toBe(rows[0]);
   expect(sortReportRows(rows, 'course')[0]).toBe(rows[1]);
   expect(rows[0].course).toBe('CSC 125');
+});
+
+it('paginates and clamps invalid page requests', () => {
+  const rows = Array.from({ length: 45 }, (_, n) => n + 1);
+  expect(paginateReportRows(rows, 2, 20).rows).toEqual(rows.slice(20, 40));
+  expect(paginateReportRows(rows, 100, 20).page).toBe(3);
+  expect(paginateReportRows([], 2, 20).pages).toBe(1);
 });
