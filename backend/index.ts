@@ -7,7 +7,7 @@ import {
   db,
   ai,
 } from '@appdeploy/sdk';
-import { isReliableGpsFix } from './geo';
+import { geofenceDistanceMeters, isReliableGpsFix } from './geo';
 const ADMIN_EMAILS = ['johncharlessarwi@gmail.com'];
 type Role = 'student' | 'lecturer' | 'class_rep' | 'administrator' | 'super_admin';
 type UserRecord = {
@@ -206,12 +206,9 @@ export const handler = router({
       if (s.locationRequired) {
         if (!isReliableGpsFix(latitude, longitude, accuracy))
           return error('This session requires a location fix with accuracy of 100 metres or better. Share your current location and retry.', 403);
-        const toRadians = (value: number) => value * Math.PI / 180;
-        const dLat = toRadians(latitude - Number(s.latitude));
-        const dLon = toRadians(longitude - Number(s.longitude));
-        const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRadians(Number(s.latitude))) * Math.cos(toRadians(latitude)) * Math.sin(dLon / 2) ** 2;
-        const distance = 6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        if (distance > (Number(s.radiusMeters) || 150))
+        const distance = geofenceDistanceMeters(latitude, longitude, Number(s.latitude), Number(s.longitude));
+        const radius = Math.max(30, Math.min(1000, Number(s.radiusMeters) || 150));
+        if (!Number.isFinite(distance) || distance > radius)
           return error('You are outside the permitted classroom attendance area.', 403);
       }
       if (s.createdBy === p.userId)
