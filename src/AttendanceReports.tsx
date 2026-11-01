@@ -38,6 +38,18 @@ export default function AttendanceReports({ role }: { role: Role }) {
   const pageData = paginateReportRows(visibleRows, page);
   const statusOptions = data ? [...new Set(data.rows.map(row => row.status))].sort() : [];
   const courseOptions = data ? [...new Set(data.rows.map(row => row.course))].sort() : [];
+  const filtersActive = Boolean(query || statusFilter || courseFilter || dateFrom || dateTo || gpsFilter !== 'all' || sortMode !== 'newest');
+
+  function resetFilters() {
+    setQuery('');
+    setStatusFilter('');
+    setCourseFilter('');
+    setDateFrom('');
+    setDateTo('');
+    setGpsFilter('all');
+    setSortMode('newest');
+    setPage(1);
+  }
 
   async function load() {
     const response = await api.get('/api/reports/attendance');
@@ -97,7 +109,7 @@ export default function AttendanceReports({ role }: { role: Role }) {
       </section>
       <section className="panel">
         <div className="panel-title"><div><span className="eyebrow">DETAILED RECORDS</span><h3>{visibleRows.length} attendance records</h3></div></div>
-        <div className="toolbar report-toolbar"><label className="search" aria-label="Search attendance records"><Search size={16}/><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search course, student or venue" /></label><label className="report-filter-label">Review status<select value={statusFilter} onChange={event => setStatusFilter(event.target.value)}><option value="">All statuses</option>{statusOptions.map(status => <option value={status} key={status}>{status}</option>)}</select></label><label className="report-filter-label">Course<select value={courseFilter} onChange={event => setCourseFilter(event.target.value)}><option value="">All courses</option>{courseOptions.map(course => <option value={course} key={course}>{course}</option>)}</select></label><label className="report-filter-label">From<input type="date" value={dateFrom} onChange={event => setDateFrom(event.target.value)} /></label><label className="report-filter-label">To<input type="date" min={dateFrom || undefined} value={dateTo} onChange={event => setDateTo(event.target.value)} /></label><label className="report-filter-label">GPS check<select value={gpsFilter} onChange={event => setGpsFilter(event.target.value as GpsFilter)}><option value="all">All records</option><option value="verified">GPS verified</option><option value="not-verified">No GPS verification</option></select></label><label className="report-filter-label">Sort<select value={sortMode} onChange={event => setSortMode(event.target.value as ReportSort)}><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="course">Course A–Z</option></select></label></div>
+        <div className="toolbar report-toolbar"><label className="search" aria-label="Search attendance records"><Search size={16}/><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search course, student or venue" /></label><label className="report-filter-label">Review status<select value={statusFilter} onChange={event => setStatusFilter(event.target.value)}><option value="">All statuses</option>{statusOptions.map(status => <option value={status} key={status}>{status}</option>)}</select></label><label className="report-filter-label">Course<select value={courseFilter} onChange={event => setCourseFilter(event.target.value)}><option value="">All courses</option>{courseOptions.map(course => <option value={course} key={course}>{course}</option>)}</select></label><label className="report-filter-label">From<input type="date" value={dateFrom} onChange={event => setDateFrom(event.target.value)} /></label><label className="report-filter-label">To<input type="date" min={dateFrom || undefined} value={dateTo} onChange={event => setDateTo(event.target.value)} /></label><label className="report-filter-label">GPS check<select value={gpsFilter} onChange={event => setGpsFilter(event.target.value as GpsFilter)}><option value="all">All records</option><option value="verified">GPS verified</option><option value="not-verified">No GPS verification</option></select></label><label className="report-filter-label">Sort<select value={sortMode} onChange={event => setSortMode(event.target.value as ReportSort)}><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="course">Course A–Z</option></select></label><button className="outline" disabled={!filtersActive} onClick={resetFilters}>Clear filters</button></div>
         <div className="table-wrap"><table><thead><tr><th>COURSE</th><th>STUDENT ID</th><th>CHECKED IN</th><th>STATUS</th><th>GPS</th></tr></thead><tbody>{pageData.rows.map(row => <tr key={row.id}><td>{row.course}</td><td><code>{role === 'student' ? 'You' : row.studentId.slice(0, 12)}</code></td><td>{stamp(row.checkedInAt)}</td><td>{row.status}</td><td>{row.locationVerified ? 'Verified' : '—'}</td></tr>)}</tbody></table></div>
         <div className="report-pager"><span>Page {pageData.page} of {pageData.pages} · {pageData.total} records</span><div><button className="outline" disabled={pageData.page <= 1} onClick={() => setPage(pageData.page - 1)}>Previous</button><button className="outline" disabled={pageData.page >= pageData.pages} onClick={() => setPage(pageData.page + 1)}>Next</button></div></div>
       </section>
