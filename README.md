@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="assets/readme/project-motion.svg" width="100%" alt="AFAMS animated overview banner" />
+</div>
+
 # AFAMS — Attendance & Focus Academic Management System
 
 [![AFAMS build](https://github.com/johncharlessarwi-dot/JOHN-ATTENDANCE-SYSTEM/actions/workflows/afams-build.yml/badge.svg)](https://github.com/johncharlessarwi-dot/JOHN-ATTENDANCE-SYSTEM/actions/workflows/afams-build.yml)
