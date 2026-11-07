@@ -404,7 +404,7 @@ export const handler = router({
           canReview: p.role === 'administrator' || p.role === 'super_admin',
         });
       } catch (e) {
-        return error(e instanceof Error ? e.message : 'Institution data unavailable.', 500);
+        return error('Institution data unavailable.', 500);
       }
     },
   ],
