@@ -149,7 +149,7 @@ export const handler = router({
       const ids = new Set(assignments.items.filter((x: any) => x.userId === p.userId).map((x: any) => x.courseId));
       const names = new Set(courses.items.filter((x: any) => ids.has(x.id)).flatMap((x: any) => [x.name,x.code].filter(Boolean)));
       const visible = sessions.items.filter((x: any) => p.role === 'class_rep' ? names.has(x.course) : x.createdBy === p.userId || x.status === 'active');
-      return json({ sessions: visible.slice(0,40) });
+      return json({ sessions: visible.slice(0,40).map((session: any) => redactSessionForViewer(session, p)) });
     },
   ],
   'POST /api/sessions': [
