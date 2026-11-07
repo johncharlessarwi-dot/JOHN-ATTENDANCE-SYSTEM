@@ -911,7 +911,7 @@ export const handler = router({
         });
         return json({ review: result.text, data: summary });
       } catch (e) {
-        return error(e instanceof Error ? e.message : 'Engagement review is temporarily unavailable.', 503);
+        return error('Engagement review is temporarily unavailable.', 503);
       }
     },
   ],
