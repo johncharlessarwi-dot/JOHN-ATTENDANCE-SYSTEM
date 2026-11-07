@@ -159,7 +159,9 @@ export const handler = router({
         return error('Enter a valid course or class name.', 400);
       if (!Number.isInteger(duration) || duration < 5 || duration > 180)
         return error('Duration must be between 5 and 180 minutes.', 400);
-      const locationRequired = Boolean(b.locationRequired);
+      if (b.locationRequired !== undefined && typeof b.locationRequired !== 'boolean')
+        return error('Location requirement must be true or false.', 400);
+      const locationRequired = b.locationRequired === true;
       const latitude = Number(b.latitude);
       const longitude = Number(b.longitude);
       const radiusMeters = Math.max(30, Math.min(1000, Number(b.radiusMeters) || 150));
