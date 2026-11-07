@@ -617,7 +617,7 @@ export const handler = router({
       } else if (kind === 'academicYears') {
         const startDate = clean(b.startDate, 10);
         const endDate = clean(b.endDate, 10);
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate) || endDate < startDate)
+        if (!validIsoDate(startDate) || !validIsoDate(endDate) || endDate <= startDate)
           return error('Provide valid academic-year start and end dates.', 400);
         const existingYears = await db.list<any>('afams_academic_years', { limit: 200 });
         if (existingYears.items.some((x: any) => x.name.toLowerCase() === name.toLowerCase()))
