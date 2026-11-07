@@ -47,7 +47,7 @@ type AttendanceRecord = {
 };
 const now = () => Date.now();
 const clean = (v: unknown, n = 120) =>
-  typeof v === 'string' ? v.trim().slice(0, n) : '';
+  typeof v === 'string' ? v.replace(/[\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g, '').trim().slice(0, n) : '';
 const makeCode = () => {
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   const bytes = new Uint8Array(6);
