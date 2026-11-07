@@ -93,7 +93,7 @@ const initials = (s = 'AF') =>
 const stamp = (n: number) =>
   new Date(n).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
 
-function getBrowserPosition(): Promise<{ latitude: number; longitude: number; accuracy: number }> {
+function getBrowserPosition(): Promise<{ latitude: number; longitude: number; accuracy: number; timestamp: number }> {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
       reject(new Error('This browser does not support location sharing.'));
@@ -104,6 +104,7 @@ function getBrowserPosition(): Promise<{ latitude: number; longitude: number; ac
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
         accuracy: position.coords.accuracy,
+        timestamp: position.timestamp,
       }),
       () => reject(new Error('Location permission was denied or the device could not determine its position.')),
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
@@ -131,7 +132,7 @@ function App() {
     [code, setCode] = useState('');
   const [sessionLocationRequired, setSessionLocationRequired] = useState(false);
   const [sessionGeo, setSessionGeo] = useState<{ latitude: number; longitude: number } | null>(null);
-  const [checkinGeo, setCheckinGeo] = useState<{ latitude: number; longitude: number; accuracy: number } | null>(null);
+  const [checkinGeo, setCheckinGeo] = useState<{ latitude: number; longitude: number; accuracy: number; timestamp: number } | null>(null);
   const [geoMessage, setGeoMessage] = useState('');
   const [minutes, setMinutes] = useState(25),
     [seconds, setSeconds] = useState(1500),
@@ -280,6 +281,7 @@ function App() {
         latitude: checkinGeo?.latitude,
         longitude: checkinGeo?.longitude,
         accuracy: checkinGeo?.accuracy,
+        gpsTimestamp: checkinGeo?.timestamp,
       });
       setNotice(r.data.message || 'Attendance recorded.');
       setCheckOpen(false);
