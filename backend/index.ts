@@ -96,6 +96,10 @@ async function roleGuard(ctx: any, allowed: Role[]) {
     ? null
     : error('Your account role does not permit this action.', 403);
 }
+function redactSessionForViewer(session: any, viewer: UserRecord) {
+  if (session.createdBy === viewer.userId || ['administrator', 'super_admin'].includes(viewer.role)) return session;
+  return Object.fromEntries(Object.entries(session).filter(([key]) => !['code', 'latitude', 'longitude'].includes(key)));
+}
 async function audit(actorId: string, action: string, detail: string) {
   await db.add('afams_audit', [{ actorId, action, detail, createdAt: now() }]);
 }
