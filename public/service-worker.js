@@ -39,10 +39,13 @@ self.addEventListener('fetch', event => {
     return;
   }
 
+  // Only immutable build assets and the public manifest are safe for offline reuse.
+  const staticAsset = url.pathname.startsWith('/assets/') || url.pathname === '/manifest.json';
+  if (!staticAsset) return;
   event.respondWith(
     caches.match(request).then(cached => {
       const network = fetch(request).then(response => {
-        if (response.ok) {
+        if (response.ok && response.type === 'basic' && !response.headers.get('cache-control')?.includes('no-store')) {
           const copy = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
         }
