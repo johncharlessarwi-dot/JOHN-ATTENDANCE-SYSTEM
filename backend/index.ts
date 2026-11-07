@@ -642,7 +642,7 @@ export const handler = router({
       } else if (kind === 'semesters') {
         const startDate = clean(b.startDate, 10);
         const endDate = clean(b.endDate, 10);
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate) || endDate < startDate)
+        if (!validIsoDate(startDate) || !validIsoDate(endDate) || endDate <= startDate)
           return error('Provide valid semester start and end dates.', 400);
         Object.assign(record, { name, academicYear: clean(b.academicYear, 20), startDate, endDate });
       } else {
