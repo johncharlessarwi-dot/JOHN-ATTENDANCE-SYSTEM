@@ -1055,8 +1055,8 @@ export const handler = router({
       }
       const p = await profileFor(ctx.user!);
       const duplicate = await db.list('afams_timetable', { limit: 300 });
-      const clash = duplicate.items.some((item: any) =>        item.courseId === courseId && item.dayOfWeek === dayOfWeek &&
-        item.startTime === startTime && item.lecturerId === p.userId
+      const clash = duplicate.items.some((item: any) =>        item.status !== 'archived' && item.courseId === courseId && item.dayOfWeek === dayOfWeek &&
+        timeRangesOverlap(startTime, endTime, item.startTime, item.endTime)
       );
       if (clash) return error('This course already has a timetable entry at that time for your account.', 409);
       const id = 'tt_' + crypto.randomUUID().replace(/-/g, '');
