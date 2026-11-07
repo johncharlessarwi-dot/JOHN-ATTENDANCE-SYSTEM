@@ -216,6 +216,8 @@ export const handler = router({
       const longitude = Number(b.longitude);
       const accuracy = Number(b.accuracy);
       if (s.locationRequired) {
+        if (typeof b.latitude !== 'number' || typeof b.longitude !== 'number' || typeof b.accuracy !== 'number')
+          return error('Provide a device GPS fix with numeric coordinates and accuracy.', 400);
         if (!isReliableGpsFix(latitude, longitude, accuracy))
           return error('This session requires a location fix with accuracy of 100 metres or better. Share your current location and retry.', 403);
         const distance = geofenceDistanceMeters(latitude, longitude, Number(s.latitude), Number(s.longitude));
