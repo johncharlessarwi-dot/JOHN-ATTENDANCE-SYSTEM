@@ -159,7 +159,7 @@ export const handler = router({
       const b = (ctx.body || {}) as Record<string, unknown>,
         course = clean(b.course, 100),
         location = clean(b.location, 100),
-        duration = Number(b.durationMinutes);
+        duration = b.durationMinutes;
       if (course.length < 2)
         return error('Enter a valid course or class name.', 400);
       if (!Number.isInteger(duration) || duration < 5 || duration > 180)
