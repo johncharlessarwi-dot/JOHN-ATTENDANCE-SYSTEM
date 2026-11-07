@@ -733,7 +733,7 @@ export const handler = router({
     requireAuth(),
     async ctx => {
       const p = await profileFor(ctx.user!);
-      if (p.role !== 'student') return error('Focus monitoring events are submitted by student accounts.', 403);
+      if (!['student', 'class_rep'].includes(p.role)) return error('Focus monitoring is available to learners.', 403);
       const b = (ctx.body || {}) as Record<string, unknown>;
       const sessionId = clean(b.sessionId, 120);
       const eventType = clean(b.eventType, 20);
