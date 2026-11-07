@@ -105,6 +105,22 @@ function redactSessionForViewer(session: any, viewer: UserRecord) {
 function redactAttendanceGps(record: any) {
   return Object.fromEntries(Object.entries(record).filter(([key]) => !['latitude', 'longitude', 'accuracyMeters'].includes(key)));
 }
+async function allowCheckInAttempt(userId: string): Promise<boolean> {
+  const id = 'checkin_' + userId;
+  const timestamp = now();
+  const [previous] = await db.get<any>('afams_request_limits', [id], { consistent: true });
+  if (!previous) {
+    const [created] = await db.tx.add('afams_request_limits', [{ id, windowStartedAt: timestamp, attempts: 1 }]);
+    return Boolean(created);
+  }
+  const inWindow = timestamp - Number(previous.windowStartedAt) < 60_000;
+  if (inWindow && Number(previous.attempts) >= 10) return false;
+  const [updated] = await db.tx.update('afams_request_limits', [{
+    id, record: { windowStartedAt: inWindow ? previous.windowStartedAt : timestamp, attempts: inWindow ? Number(previous.attempts) + 1 : 1 },
+    if: { attempts: previous.attempts },
+  }], { patch: true });
+  return Boolean(updated);
+}
 async function audit(actorId: string, action: string, detail: string) {
   await db.add('afams_audit', [{ actorId, action, detail, createdAt: now() }]);
 }
