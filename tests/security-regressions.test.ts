@@ -55,3 +55,18 @@ describe('attendance privacy and abuse prevention', () => {
     expect(api).toContain('lecturerClash');
   });
 });
+
+describe('owner role and error disclosure hardening', () => {
+  it('ties super-admin to authenticated allowlisted email', () => {
+    expect(api).toContain("saved.role === 'super_admin' ? 'student' : saved.role");
+    expect(api).toContain('ADMIN_EMAILS.includes(user.email.toLowerCase())');
+  });
+  it('returns generic errors instead of upstream exception messages', () => {
+    expect(api).not.toContain('e instanceof Error ? e.message');
+    expect(api).toContain("error('Academic assistant is temporarily unavailable.', 503)");
+    expect(api).toContain("error('Quiz generation is temporarily unavailable.', 503)");
+  });
+  it('requires current staff authorization to delete announcements', () => {
+    expect(api).toContain('You do not have permission to delete announcements.');
+  });
+});
