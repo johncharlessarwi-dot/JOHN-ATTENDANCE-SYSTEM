@@ -266,7 +266,7 @@ export const handler = router({
         {
           ok: true,
           message: 'Check-in received for ' + s.course + '. Your lecturer will verify the attendance record.',
-          attendance: { id, ...record },
+          attendance: redactAttendanceGps({ id, ...record }),
         },
         201      );    },
   ],
