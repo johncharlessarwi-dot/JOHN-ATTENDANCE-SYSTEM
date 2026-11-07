@@ -197,6 +197,8 @@ export const handler = router({
           limit: 100,
         }),
         s = page.items.find(x => x.code === code);
+      if (p.role !== 'student' && p.role !== 'class_rep')
+        return error('Only learners may check in to attendance sessions.', 403);
       if (!s) return error('Session code was not found.', 404);
       if (s.status !== 'active' || s.expiresAt <= now())
         return error('This session has expired.', 410);
