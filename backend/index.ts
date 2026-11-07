@@ -1058,7 +1058,13 @@ export const handler = router({
       const clash = duplicate.items.some((item: any) =>        item.status !== 'archived' && item.courseId === courseId && item.dayOfWeek === dayOfWeek &&
         timeRangesOverlap(startTime, endTime, item.startTime, item.endTime)
       );
-      if (clash) return error('This course already has a timetable entry at that time for your account.', 409);
+      if (clash) return error('This course already has an overlapping timetable entry.', 409);
+      const venueClash = duplicate.items.some((item: any) =>
+        item.status !== 'archived' && item.dayOfWeek === dayOfWeek &&
+        String(item.venue || '').trim().toLowerCase() === venue.toLowerCase() &&
+        timeRangesOverlap(startTime, endTime, item.startTime, item.endTime)
+      );
+      if (venueClash) return error('This venue is occupied during the selected time.', 409);
       const id = 'tt_' + crypto.randomUUID().replace(/-/g, '');
       const record = {
         id, courseId, courseName: (courseRecord as any).name || 'Course',
