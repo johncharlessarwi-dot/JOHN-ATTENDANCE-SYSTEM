@@ -8,6 +8,7 @@ import {
   ai,
 } from '@appdeploy/sdk';
 import { geofenceDistanceMeters, isReliableGpsFix } from './geo';
+import { validGeofenceRadius } from './geofence-policy';
 const ADMIN_EMAILS = ['johncharlessarwi@gmail.com'];
 type Role = 'student' | 'lecturer' | 'class_rep' | 'administrator' | 'super_admin';
 type UserRecord = {
@@ -169,7 +170,9 @@ export const handler = router({
       const locationRequired = b.locationRequired === true;
       const latitude = Number(b.latitude);
       const longitude = Number(b.longitude);
-      const radiusMeters = Math.max(30, Math.min(1000, Number(b.radiusMeters) || 150));
+      const radiusMeters = b.radiusMeters === undefined ? 150 : b.radiusMeters;
+      if (locationRequired && (typeof radiusMeters !== 'number' || !validGeofenceRadius(radiusMeters)))
+        return error('Geofence radius must be a whole number between 10 and 1000 metres.', 400);
       if (locationRequired && (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 || !Number.isFinite(longitude) || longitude < -180 || longitude > 180))
         return error('Capture a valid classroom location before enabling the geofence.', 400);
       const p = await profileFor(ctx.user!),
