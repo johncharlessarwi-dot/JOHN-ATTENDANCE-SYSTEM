@@ -954,7 +954,7 @@ export const handler = router({
         if (p.role === 'lecturer') return session?.createdBy === p.userId;
         if (p.role === 'class_rep') return names.has(session?.course);
         return true;
-      }).map((r: any) => { const session = sessionMap.get(r.sessionId) as any; return { ...r, venue: session?.location || '', sessionStartedAt: session?.startsAt || r.checkedInAt, locationVerified: Boolean(r.locationVerified) }; }).sort((a: any,b: any)=>b.checkedInAt-a.checkedInAt);
+      }).map((r: any) => { const session = sessionMap.get(r.sessionId) as any; return { ...redactAttendanceGps(r), venue: session?.location || '', sessionStartedAt: session?.startsAt || r.checkedInAt, locationVerified: Boolean(r.locationVerified) }; }).sort((a: any,b: any)=>b.checkedInAt-a.checkedInAt);
       const summary = { total: rows.length, verified: rows.filter((x: any)=>x.status==='Verified').length, pending: rows.filter((x: any)=>x.status==='Pending Verification').length, rejected: rows.filter((x: any)=>x.status==='Rejected').length, gpsVerified: rows.filter((x: any)=>x.locationVerified).length };
       const map = new Map<string, any>();
       for (const row of rows) { const item = map.get(row.course) || { course: row.course, total: 0, verified: 0, pending: 0, rejected: 0 }; item.total++; if(row.status==='Verified')item.verified++; if(row.status==='Pending Verification')item.pending++; if(row.status==='Rejected')item.rejected++; map.set(row.course,item); }
