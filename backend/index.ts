@@ -599,7 +599,7 @@ export const handler = router({
         ]);
         const ids = new Set(assignments.items.filter((x: any) => x.userId === p.userId).map((x: any) => x.courseId));
         return json({ canManage: p.role === 'administrator' || p.role === 'super_admin', faculties: p.role === 'class_rep' ? [] : faculties.items, departments: p.role === 'class_rep' ? [] : departments.items, programmes: p.role === 'class_rep' ? [] : programmes.items, courses: p.role === 'class_rep' ? courses.items.filter((x: any) => ids.has(x.id)) : courses.items, semesters: p.role === 'class_rep' ? [] : semesters.items, academicYears: p.role === 'class_rep' ? [] : academicYears.items, campuses: p.role === 'class_rep' ? [] : campuses.items, classrooms: p.role === 'class_rep' ? [] : classrooms.items, enrollments: p.role === 'student' ? enrollments.items.filter((x: any) => x.studentId === p.userId) : p.role === 'class_rep' ? enrollments.items.filter((x: any) => ids.has(x.courseId) && x.status === 'active') : enrollments.items });
-      } catch (e) { return error(e instanceof Error ? e.message : 'Academic data unavailable.', 500); }
+      } catch (e) { return error('Academic data unavailable.', 500); }
     },
   ],
   'POST /api/academic': [
