@@ -45,6 +45,10 @@ describe('attendance privacy and abuse prevention', () => {
     expect(api).toContain("if: { attempts: previous.attempts }");
     expect(api).toContain('429');
   });
+  it('requires fresh browser GPS fixes for geofenced attendance', () => {
+    expect(api).toContain('isFreshGpsFix(b.gpsTimestamp as number)');
+    expect(api).toContain('GPS location is stale');
+  });
   it('detects timetable overlap across courses, venues, and lecturers', () => {
     expect(api).toContain('timeRangesOverlap(startTime, endTime, item.startTime, item.endTime)');
     expect(api).toContain('venueClash');
