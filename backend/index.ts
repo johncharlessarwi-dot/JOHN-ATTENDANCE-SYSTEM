@@ -931,7 +931,7 @@ export const handler = router({
       try {
         const result = await ai.generate({ system: 'You are AFAMS Academic Assistant. Give accurate, supportive academic guidance. Use supplied AFAMS context only for claims about user records. Never invent grades, attendance, courses, university policies, deadlines or institutional facts. Clearly say when information is unavailable. Explain concepts step by step. Do not make attendance or academic record changes.', prompt: 'AFAMS user context: ' + JSON.stringify(context) + '\nUser question: ' + question, maxTokens: 1000, thinkingMode: 'FAST' });
         return json({ answer: result.text });
-      } catch (e) { return error(e instanceof Error ? e.message : 'Academic assistant is temporarily unavailable.', 503); }
+      } catch (e) { return error('Academic assistant is temporarily unavailable.', 503); }
     },
   ],
   'POST /api/ai/quiz': [
