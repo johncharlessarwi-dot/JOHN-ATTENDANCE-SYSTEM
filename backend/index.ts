@@ -1047,7 +1047,7 @@ export const handler = router({
         const enrolled = new Set(enrollments.items.filter((x: any)=>x.studentId===p.userId&&x.status==='active').map((x: any)=>x.courseId));
         const representative = new Set(assignments.items.filter((x: any)=>x.userId===p.userId).map((x: any)=>x.courseId));
         const visible = timetable.items.filter((x: any)=>p.role==='student'?enrolled.has(x.courseId):p.role==='lecturer'?x.lecturerId===p.userId:p.role==='class_rep'?representative.has(x.courseId):true);        return json({ timetable: visible.sort((a: any,b: any)=>String(a.dayOfWeek).localeCompare(String(b.dayOfWeek))||String(a.startTime).localeCompare(String(b.startTime))), canManage: ['lecturer','administrator','super_admin'].includes(p.role) });
-      } catch (e) { return error(e instanceof Error ? e.message : 'Timetable unavailable.', 500); }
+      } catch (e) { return error('Timetable unavailable.', 500); }
     },
   ],
   'POST /api/timetable': [
