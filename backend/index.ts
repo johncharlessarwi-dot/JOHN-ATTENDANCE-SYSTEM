@@ -954,7 +954,7 @@ export const handler = router({
         });
         return json({ quiz: result.text });
       } catch (e) {
-        return error(e instanceof Error ? e.message : 'Quiz generation is temporarily unavailable.', 503);
+        return error('Quiz generation is temporarily unavailable.', 503);
       }
     },
   ],
