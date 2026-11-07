@@ -290,7 +290,7 @@ export const handler = router({
         const student = userMap.get(record.studentId) as any;
         const session = sessionMap.get(record.sessionId) as any;
         return {
-          ...record,
+          ...redactAttendanceGps(record),
           studentName: student?.name || student?.email || 'Student',
           sessionLocation: session?.location || '',
           reviewedBy: record.reviewedBy || null,
