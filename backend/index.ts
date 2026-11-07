@@ -136,7 +136,7 @@ export const handler = router({
         return json({ profile: await profileFor(user!) });
       } catch (e) {
         return error(
-          e instanceof Error ? e.message : 'Profile unavailable.',
+          'Profile unavailable.',
           500
         );
       }
