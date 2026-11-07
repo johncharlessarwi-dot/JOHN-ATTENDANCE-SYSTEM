@@ -1023,6 +1023,8 @@ export const handler = router({
     requireAuth(),
     async ctx => {
       const p = await profileFor(ctx.user!);
+      if (!['lecturer', 'administrator', 'super_admin'].includes(p.role))
+        return error('You do not have permission to delete announcements.', 403);
       const id = clean(ctx.params.id, 120);
       const [item] = await db.get<any>('afams_announcements', [id], { consistent: true });
       if (!item) return error('Announcement was not found.', 404);
