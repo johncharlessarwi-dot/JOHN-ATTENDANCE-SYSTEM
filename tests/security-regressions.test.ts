@@ -17,6 +17,13 @@ describe('AFAMS security regression contracts', () => {
     expect(api).toContain("typeof b.locationRequired !== 'boolean'");
     expect(api).toContain('b.locationRequired === true');
   });
+  it('validates academic calendar dates and numeric academic inputs', () => {
+    expect(api).toContain('const validIsoDate');
+    expect(api).toContain('parsed.toISOString().slice(0, 10) === value');
+    expect(api.match(/validIsoDate\(startDate\)/g)?.length).toBe(2);
+    expect(api).toContain('Number.isSafeInteger(credits)');
+    expect(api).toContain('Number.isSafeInteger(requestedCount)');
+  });
   it('never stores authenticated requests or API data in offline cache', () => {
     expect(worker).toContain("url.pathname.startsWith('/api/')");
     expect(worker).toContain("request.headers.has('authorization')");
