@@ -173,6 +173,8 @@ export const handler = router({
       const radiusMeters = b.radiusMeters === undefined ? 150 : b.radiusMeters;
       if (locationRequired && (typeof radiusMeters !== 'number' || !validGeofenceRadius(radiusMeters)))
         return error('Geofence radius must be a whole number between 10 and 1000 metres.', 400);
+      if (locationRequired && (typeof b.latitude !== 'number' || typeof b.longitude !== 'number'))
+        return error('Classroom coordinates must be numeric GPS values.', 400);
       if (locationRequired && (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 || !Number.isFinite(longitude) || longitude < -180 || longitude > 180))
         return error('Capture a valid classroom location before enabling the geofence.', 400);
       const p = await profileFor(ctx.user!),
