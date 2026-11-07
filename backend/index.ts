@@ -100,6 +100,9 @@ function redactSessionForViewer(session: any, viewer: UserRecord) {
   if (session.createdBy === viewer.userId || ['administrator', 'super_admin'].includes(viewer.role)) return session;
   return Object.fromEntries(Object.entries(session).filter(([key]) => !['code', 'latitude', 'longitude'].includes(key)));
 }
+function redactAttendanceGps(record: any) {
+  return Object.fromEntries(Object.entries(record).filter(([key]) => !['latitude', 'longitude', 'accuracyMeters'].includes(key)));
+}
 async function audit(actorId: string, action: string, detail: string) {
   await db.add('afams_audit', [{ actorId, action, detail, createdAt: now() }]);
 }
