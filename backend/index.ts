@@ -895,7 +895,10 @@ export const handler = router({
       const b = (ctx.body || {}) as Record<string, unknown>;
       const topic = clean(b.topic, 160);
       const material = clean(b.material, 6000);
-      const count = Math.max(3, Math.min(10, Math.floor(Number(b.count) || 5)));
+      const requestedCount = b.count === undefined ? 5 : b.count;
+      if (typeof requestedCount !== 'number' || !Number.isSafeInteger(requestedCount) || requestedCount < 3 || requestedCount > 10)
+        return error('Quiz question count must be a whole number from 3 to 10.', 400);
+      const count = requestedCount;
       if (topic.length < 2) return error('Enter a quiz topic.', 400);
       try {
         const result = await ai.generate({
