@@ -73,7 +73,10 @@ async function profileFor(user: {
   const [saved] = await db.get<UserRecord>('afams_users', [user.userId], {
     consistent: true,
   });
-  if (saved) return saved;
+  if (saved) {
+    const ownerEmail = Boolean(user.email && ADMIN_EMAILS.includes(user.email.toLowerCase()));
+    return { ...saved, role: ownerEmail ? 'super_admin' : saved.role === 'super_admin' ? 'student' : saved.role };
+  }
   const owner = Boolean(
     user.email && ADMIN_EMAILS.includes(user.email.toLowerCase())
   );
