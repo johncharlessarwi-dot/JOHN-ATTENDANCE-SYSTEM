@@ -32,3 +32,22 @@ describe('AFAMS security regression contracts', () => {
     expect(worker).toContain("includes('no-store')");
   });
 });
+
+describe('attendance privacy and abuse prevention', () => {
+  it('redacts codes and precise GPS coordinates from non-owner responses', () => {
+    expect(api).toContain('redactSessionForViewer(session, p)');
+    expect(api).toContain('redactAttendanceGps(record)');
+    expect(api).toContain("['code', 'latitude', 'longitude']");
+  });
+  it('throttles repeated code guesses using atomic account windows', () => {
+    expect(api).toContain('allowCheckInAttempt(p.userId)');
+    expect(api).toContain("'afams_request_limits'");
+    expect(api).toContain("if: { attempts: previous.attempts }");
+    expect(api).toContain('429');
+  });
+  it('detects timetable overlap across courses, venues, and lecturers', () => {
+    expect(api).toContain('timeRangesOverlap(startTime, endTime, item.startTime, item.endTime)');
+    expect(api).toContain('venueClash');
+    expect(api).toContain('lecturerClash');
+  });
+});
