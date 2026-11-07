@@ -9,6 +9,7 @@ import {
 } from '@appdeploy/sdk';
 import { geofenceDistanceMeters, isReliableGpsFix } from './geo';
 import { validGeofenceRadius } from './geofence-policy';
+import { isFreshGpsFix } from './gps-freshness';
 const ADMIN_EMAILS = ['johncharlessarwi@gmail.com'];
 type Role = 'student' | 'lecturer' | 'class_rep' | 'administrator' | 'super_admin';
 type UserRecord = {
@@ -247,6 +248,8 @@ export const handler = router({
       if (s.locationRequired) {
         if (typeof b.latitude !== 'number' || typeof b.longitude !== 'number' || typeof b.accuracy !== 'number')
           return error('Provide a device GPS fix with numeric coordinates and accuracy.', 400);
+        if (!isFreshGpsFix(b.gpsTimestamp as number))
+          return error('GPS location is stale. Capture a new location before checking in.', 403);
         if (!isReliableGpsFix(latitude, longitude, accuracy))
           return error('This session requires a location fix with accuracy of 100 metres or better. Share your current location and retry.', 403);
         const distance = geofenceDistanceMeters(latitude, longitude, Number(s.latitude), Number(s.longitude));
