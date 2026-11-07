@@ -320,6 +320,8 @@ export const handler = router({
       });
       if (!target)
         return error('Account not found. Ask the user to sign in first.', 404);
+      if (target.role === 'super_admin' || (target.email && ADMIN_EMAILS.includes(target.email.toLowerCase())))
+        return error('Owner permissions cannot be changed through role management.', 403);
       const [ok] = await db.tx.update(
         'afams_users',
         [
