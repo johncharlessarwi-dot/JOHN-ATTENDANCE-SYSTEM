@@ -55,7 +55,7 @@ const makeCode = () => {
   return Array.from(bytes, byte => alphabet[byte % alphabet.length]).join('');
 };
 const isRole = (v: unknown): v is Role =>
-  ['student', 'lecturer', 'class_rep', 'administrator', 'super_admin'].includes(String(v));
+  typeof v === 'string' && ['student', 'lecturer', 'class_rep', 'administrator', 'super_admin'].includes(v);
 async function profileFor(user: {
   userId: string;
   email?: string;
