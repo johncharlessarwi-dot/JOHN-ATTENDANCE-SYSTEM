@@ -1065,6 +1065,11 @@ export const handler = router({
         timeRangesOverlap(startTime, endTime, item.startTime, item.endTime)
       );
       if (venueClash) return error('This venue is occupied during the selected time.', 409);
+      const lecturerClash = duplicate.items.some((item: any) =>
+        item.status !== 'archived' && item.lecturerId === p.userId && item.dayOfWeek === dayOfWeek &&
+        timeRangesOverlap(startTime, endTime, item.startTime, item.endTime)
+      );
+      if (lecturerClash) return error('You already have a class during the selected time.', 409);
       const id = 'tt_' + crypto.randomUUID().replace(/-/g, '');
       const record = {
         id, courseId, courseName: (courseRecord as any).name || 'Course',
