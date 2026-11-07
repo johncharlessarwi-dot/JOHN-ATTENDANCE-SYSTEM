@@ -136,7 +136,7 @@ export const handler = router({
         const sessions = p.role === 'class_rep' ? [] : p.role === 'student' ? sp.items.filter((x: any) => x.status === 'active' || x.createdBy === p.userId) : p.role === 'lecturer' ? sp.items.filter((x: any) => x.createdBy === p.userId) : sp.items;
         const attendance = p.role === 'class_rep' ? [] : p.role === 'student' ? ap.items.filter((x: any) => x.studentId === p.userId) : p.role === 'lecturer' ? ap.items.filter((x: any) => sessions.some((s: any) => s.id === x.sessionId)) : ap.items;
         const active = sessions.filter((x: any) => x.status === 'active' && x.expiresAt > now());
-        return json({ profile: p, stats: { sessions: sessions.length, attendance: attendance.length, activeSessions: active.length, attendanceRate: null }, sessions: sessions.sort((a: any,b: any)=>b.startsAt-a.startsAt).slice(0,30).map((session: any) => redactSessionForViewer(session, p)), attendance: attendance.sort((a: any,b: any)=>b.checkedInAt-a.checkedInAt).slice(0,50), audit: lp.items.sort((a: any,b: any)=>b.createdAt-a.createdAt).slice(0,30) });
+        return json({ profile: p, stats: { sessions: sessions.length, attendance: attendance.length, activeSessions: active.length, attendanceRate: null }, sessions: sessions.sort((a: any,b: any)=>b.startsAt-a.startsAt).slice(0,30).map((session: any) => redactSessionForViewer(session, p)), attendance: attendance.sort((a: any,b: any)=>b.checkedInAt-a.checkedInAt).slice(0,50).map(redactAttendanceGps), audit: lp.items.sort((a: any,b: any)=>b.createdAt-a.createdAt).slice(0,30) });
       } catch (e) { return error(e instanceof Error ? e.message : 'Dashboard unavailable.', 500); }
     },
   ],
