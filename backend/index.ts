@@ -605,7 +605,10 @@ export const handler = router({
         const programmeId = clean(b.programmeId, 80);
         const [programme] = await db.get('afams_programmes', [programmeId]);
         if (!programme) return error('Select an existing programme.', 400);
-        Object.assign(record, { name, code: clean(b.code, 20).toUpperCase(), programmeId, credits: Math.max(0, Math.min(60, Number(b.credits) || 0)) });
+        const credits = b.credits === undefined ? 0 : b.credits;
+        if (typeof credits !== 'number' || !Number.isSafeInteger(credits) || credits < 0 || credits > 60)
+          return error('Course credits must be a whole number between 0 and 60.', 400);
+        Object.assign(record, { name, code: clean(b.code, 20).toUpperCase(), programmeId, credits });
       } else if (kind === 'academicYears') {
         const startDate = clean(b.startDate, 10);
         const endDate = clean(b.endDate, 10);
