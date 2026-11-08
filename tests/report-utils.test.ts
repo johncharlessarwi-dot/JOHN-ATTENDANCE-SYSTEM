@@ -72,3 +72,7 @@ it('rejects impossible and ambiguous report filter dates',()=>{
  expect(filterReportDates(rows,'2026-02-30','2026-03-01')).toEqual([]);
  expect(filterReportDates(rows,'03/01/2026','')).toEqual([]);
 });
+
+it('rejects unsupported GPS verification filters',()=>{
+ expect(()=>filterReportGps([{locationVerified:false}], 'invalid' as never)).toThrow(RangeError);
+});
