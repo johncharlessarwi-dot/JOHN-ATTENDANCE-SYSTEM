@@ -81,3 +81,7 @@ it('guards formulas hidden behind invisible Unicode prefix',()=>{
  expect(spreadsheetSafeText('\uFEFF=2+2').startsWith("'")).toBe(true);
  expect(spreadsheetSafeText('\u200B@SUM(1)').startsWith("'")).toBe(true);
 });
+
+it('rejects oversized report search input',()=>{
+ expect(()=>searchReportRows([], 'x'.repeat(201))).toThrow(RangeError);
+});
