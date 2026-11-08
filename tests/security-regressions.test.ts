@@ -30,6 +30,9 @@ describe('AFAMS security regression contracts', () => {
     expect(worker).toContain("request.credentials === 'include'");
     expect(worker).toContain('if (!staticAsset) return');
     expect(worker).toContain("includes('no-store')");
+    expect(worker).toContain("includes('private')");
+    expect(worker).toContain("headers.has('set-cookie')");
+    expect(worker).toContain('url.search) return');
   });
 });
 
@@ -44,6 +47,7 @@ describe('attendance privacy and abuse prevention', () => {
     expect(api).toContain("'afams_request_limits'");
     expect(api).toContain("if: { attempts: previous.attempts }");
     expect(api).toContain('429');
+    expect(api.indexOf('allowCheckInAttempt(p.userId)', api.indexOf("'POST /api/check-in'"))).toBeLessThan(api.indexOf("db.list<SessionRecord & { id: string }>", api.indexOf("'POST /api/check-in'")));
   });
   it('requires fresh browser GPS fixes for geofenced attendance', () => {
     expect(api).toContain('isFreshGpsFix(b.gpsTimestamp as number)');
@@ -58,8 +62,8 @@ describe('attendance privacy and abuse prevention', () => {
 
 describe('owner role and error disclosure hardening', () => {
   it('ties super-admin to authenticated allowlisted email', () => {
-    expect(api).toContain("saved.role === 'super_admin' ? 'student' : saved.role");
-    expect(api).toContain('ADMIN_EMAILS.includes(user.email.toLowerCase())');
+    expect(api).toContain("effectiveAccountRole(saved.role, user.email, ADMIN_EMAILS)");
+    expect(api).toContain("effectiveAccountRole(raced.role, user.email, ADMIN_EMAILS)");
   });
   it('returns generic errors instead of upstream exception messages', () => {
     expect(api).not.toContain('e instanceof Error ? e.message');

@@ -22,7 +22,7 @@ self.addEventListener('fetch', event => {
   const request = event.request;
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
-  if (url.origin !== self.location.origin) return;
+  if (url.origin !== self.location.origin || url.search) return;
   // Academic APIs and authenticated data must never enter the shared browser Cache Storage.
   if (url.pathname.startsWith('/api/') || request.headers.has('authorization') || request.credentials === 'include') return;
 
@@ -30,7 +30,7 @@ self.addEventListener('fetch', event => {
     event.respondWith(
       fetch(request).then(response => {
         const copy = response.clone();
-        if (response.ok && response.type === 'basic' && !response.headers.get('cache-control')?.includes('no-store')) {
+        if (response.ok && response.type === 'basic' && !response.headers.get('cache-control')?.includes('no-store') && !response.headers.get('cache-control')?.includes('private') && !response.headers.has('set-cookie')) {
           event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.put('/', copy)));
         }
         return response;

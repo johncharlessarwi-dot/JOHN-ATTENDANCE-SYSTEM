@@ -66,3 +66,31 @@ it('paginates and clamps invalid page requests', () => {
   expect(paginateReportRows(rows, 100, 20).page).toBe(3);
   expect(paginateReportRows([], 2, 20).pages).toBe(1);
 });
+
+it('rejects impossible and ambiguous report filter dates',()=>{
+ const rows=[{checkedInAt:Date.parse('2026-03-01T12:00:00Z')}];
+ expect(filterReportDates(rows,'2026-02-30','2026-03-01')).toEqual([]);
+ expect(filterReportDates(rows,'03/01/2026','')).toEqual([]);
+});
+
+it('rejects unsupported GPS verification filters',()=>{
+ expect(()=>filterReportGps([{locationVerified:false}], 'invalid' as never)).toThrow(RangeError);
+});
+
+it('guards formulas hidden behind invisible Unicode prefix',()=>{
+ expect(spreadsheetSafeText('\uFEFF=2+2').startsWith("'")).toBe(true);
+ expect(spreadsheetSafeText('\u200B@SUM(1)').startsWith("'")).toBe(true);
+});
+
+it('rejects oversized report search input',()=>{
+ expect(()=>searchReportRows([], 'x'.repeat(201))).toThrow(RangeError);
+});
+
+it('rejects unknown sort order',()=>{
+ expect(()=>sortReportRows([], 'random' as never)).toThrow(RangeError);
+});
+
+it('rejects non-finite report pagination',()=>{
+ expect(()=>paginateReportRows([],Infinity)).toThrow(RangeError);
+ expect(()=>paginateReportRows([],1,NaN)).toThrow(RangeError);
+});

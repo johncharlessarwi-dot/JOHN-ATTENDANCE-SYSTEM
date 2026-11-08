@@ -10,6 +10,8 @@ import {
 import { geofenceDistanceMeters, isReliableGpsFix } from './geo';
 import { validGeofenceRadius } from './geofence-policy';
 import { isFreshGpsFix } from './gps-freshness';
+import { effectiveAccountRole } from './owner-role';
+import { normalizeSessionCode } from './session-code';
 const ADMIN_EMAILS = ['johncharlessarwi@gmail.com'];
 type Role = 'student' | 'lecturer' | 'class_rep' | 'administrator' | 'super_admin';
 type UserRecord = {
@@ -74,8 +76,7 @@ async function profileFor(user: {
     consistent: true,
   });
   if (saved) {
-    const ownerEmail = Boolean(user.email && ADMIN_EMAILS.includes(user.email.toLowerCase()));
-    return { ...saved, role: ownerEmail ? 'super_admin' : saved.role === 'super_admin' ? 'student' : saved.role };
+    return { ...saved, role: effectiveAccountRole(saved.role, user.email, ADMIN_EMAILS) };
   }
   const owner = Boolean(
     user.email && ADMIN_EMAILS.includes(user.email.toLowerCase())
@@ -93,7 +94,7 @@ async function profileFor(user: {
   const [raced] = await db.get<UserRecord>('afams_users', [user.userId], {
     consistent: true,
   });
-  if (raced) return raced;
+  if (raced) return { ...raced, role: effectiveAccountRole(raced.role, user.email, ADMIN_EMAILS) };
   throw new Error('Could not initialize account profile.');
 }
 async function roleGuard(ctx: any, allowed: Role[]) {
@@ -230,18 +231,16 @@ export const handler = router({
     requireAuth(),
     async ctx => {
       const b = (ctx.body || {}) as Record<string, unknown>,
-        code = clean(b.code, 8).toUpperCase();
-      if (!/^[A-Z0-9]{6}$/.test(code))
+        code = normalizeSessionCode(b.code);
+      if (!code)
         return error('Enter the six-character session code.', 400);
-      const p = await profileFor(ctx.user!),
-        page = await db.list<SessionRecord & { id: string }>('afams_sessions', {
-          limit: 100,
-        }),
-        s = page.items.find(x => x.code === code);
+      const p = await profileFor(ctx.user!);
       if (p.role !== 'student' && p.role !== 'class_rep')
         return error('Only learners may check in to attendance sessions.', 403);
       if (!(await allowCheckInAttempt(p.userId)))
         return error('Too many attendance attempts. Wait one minute and try again.', 429);
+      const page = await db.list<SessionRecord & { id: string }>('afams_sessions', { limit: 100 });
+      const s = page.items.find(x => x.code === code);
       if (!s) return error('Session code was not found.', 404);
       if (s.status !== 'active' || s.expiresAt <= now())
         return error('This session has expired.', 410);
