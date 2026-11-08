@@ -76,3 +76,8 @@ it('rejects impossible and ambiguous report filter dates',()=>{
 it('rejects unsupported GPS verification filters',()=>{
  expect(()=>filterReportGps([{locationVerified:false}], 'invalid' as never)).toThrow(RangeError);
 });
+
+it('guards formulas hidden behind invisible Unicode prefix',()=>{
+ expect(spreadsheetSafeText('\uFEFF=2+2').startsWith("'")).toBe(true);
+ expect(spreadsheetSafeText('\u200B@SUM(1)').startsWith("'")).toBe(true);
+});
