@@ -22,7 +22,7 @@ self.addEventListener('fetch', event => {
   const request = event.request;
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
-  if (url.origin !== self.location.origin) return;
+  if (url.origin !== self.location.origin || url.search) return;
   // Academic APIs and authenticated data must never enter the shared browser Cache Storage.
   if (url.pathname.startsWith('/api/') || request.headers.has('authorization') || request.credentials === 'include') return;
 
