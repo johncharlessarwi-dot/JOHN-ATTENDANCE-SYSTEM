@@ -44,6 +44,7 @@ describe('attendance privacy and abuse prevention', () => {
     expect(api).toContain("'afams_request_limits'");
     expect(api).toContain("if: { attempts: previous.attempts }");
     expect(api).toContain('429');
+    expect(api.indexOf('allowCheckInAttempt(p.userId)', api.indexOf("'POST /api/check-in'"))).toBeLessThan(api.indexOf("db.list<SessionRecord & { id: string }>", api.indexOf("'POST /api/check-in'")));
   });
   it('requires fresh browser GPS fixes for geofenced attendance', () => {
     expect(api).toContain('isFreshGpsFix(b.gpsTimestamp as number)');
