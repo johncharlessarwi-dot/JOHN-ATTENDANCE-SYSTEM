@@ -1,7 +1,7 @@
 /** Prevent spreadsheet formula evaluation while preserving CSV readability. */
 export function spreadsheetSafeText(value: unknown): string {
   const raw = String(value ?? '');
-  return /^[\s]*[=+\-@]/.test(raw) ? `'${raw}` : raw;
+  return /^[\s\uFEFF\u200B\u200C\u200D]*[=+\-@]/.test(raw) ? `'${raw}` : raw;
 }
 
 export function csvCell(value: unknown): string {
