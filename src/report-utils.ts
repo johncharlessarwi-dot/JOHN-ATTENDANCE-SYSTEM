@@ -48,6 +48,7 @@ export function sortReportRows<T extends { checkedInAt: number; course: string }
 }
 
 export function paginateReportRows<T>(rows: T[], requestedPage: number, pageSize = 20) {
+  if (!Number.isFinite(pageSize) || !Number.isFinite(requestedPage)) throw new RangeError('Invalid page numbers');
   const safeSize = Math.max(1, Math.min(100, Math.floor(pageSize) || 20));
   const pages = Math.max(1, Math.ceil(rows.length / safeSize));
   const page = Math.max(1, Math.min(pages, Math.floor(requestedPage) || 1));
