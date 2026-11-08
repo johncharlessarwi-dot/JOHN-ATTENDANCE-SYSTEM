@@ -11,6 +11,7 @@ import { geofenceDistanceMeters, isReliableGpsFix } from './geo';
 import { validGeofenceRadius } from './geofence-policy';
 import { isFreshGpsFix } from './gps-freshness';
 import { effectiveAccountRole } from './owner-role';
+import { normalizeSessionCode } from './session-code';
 const ADMIN_EMAILS = ['johncharlessarwi@gmail.com'];
 type Role = 'student' | 'lecturer' | 'class_rep' | 'administrator' | 'super_admin';
 type UserRecord = {
@@ -230,8 +231,8 @@ export const handler = router({
     requireAuth(),
     async ctx => {
       const b = (ctx.body || {}) as Record<string, unknown>,
-        code = clean(b.code, 8).toUpperCase();
-      if (!/^[A-Z0-9]{6}$/.test(code))
+        code = normalizeSessionCode(b.code);
+      if (!code)
         return error('Enter the six-character session code.', 400);
       const p = await profileFor(ctx.user!),
         page = await db.list<SessionRecord & { id: string }>('afams_sessions', {
