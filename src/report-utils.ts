@@ -41,6 +41,7 @@ export function filterReportGps<T extends { locationVerified: boolean }>(rows: T
 
 export type ReportSort = 'newest' | 'oldest' | 'course';
 export function sortReportRows<T extends { checkedInAt: number; course: string }>(rows: T[], sort: ReportSort): T[] {
+  if (!['newest', 'oldest', 'course'].includes(sort)) throw new RangeError('Unknown report sort');
   return [...rows].sort((a, b) => sort === 'course'
     ? a.course.localeCompare(b.course) || b.checkedInAt - a.checkedInAt
     : sort === 'oldest' ? a.checkedInAt - b.checkedInAt : b.checkedInAt - a.checkedInAt);
