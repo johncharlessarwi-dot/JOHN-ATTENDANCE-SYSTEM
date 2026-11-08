@@ -89,3 +89,8 @@ it('rejects oversized report search input',()=>{
 it('rejects unknown sort order',()=>{
  expect(()=>sortReportRows([], 'random' as never)).toThrow(RangeError);
 });
+
+it('rejects non-finite report pagination',()=>{
+ expect(()=>paginateReportRows([],Infinity)).toThrow(RangeError);
+ expect(()=>paginateReportRows([],1,NaN)).toThrow(RangeError);
+});
