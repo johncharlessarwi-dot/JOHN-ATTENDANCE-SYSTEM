@@ -66,3 +66,9 @@ it('paginates and clamps invalid page requests', () => {
   expect(paginateReportRows(rows, 100, 20).page).toBe(3);
   expect(paginateReportRows([], 2, 20).pages).toBe(1);
 });
+
+it('rejects impossible and ambiguous report filter dates',()=>{
+ const rows=[{checkedInAt:Date.parse('2026-03-01T12:00:00Z')}];
+ expect(filterReportDates(rows,'2026-02-30','2026-03-01')).toEqual([]);
+ expect(filterReportDates(rows,'03/01/2026','')).toEqual([]);
+});
