@@ -6,3 +6,8 @@ it('rejects mismatched column count', () => { expect(() => buildAttendanceCsv(['
 it('rejects non-array rows in untrusted CSV datasets',()=>{
  expect(()=>buildAttendanceCsv(['student'],[null as never])).toThrow(RangeError);
 });
+
+it('rejects unsafe or oversized CSV header labels',()=>{
+ expect(()=>buildAttendanceCsv([42 as never],[])).toThrow(RangeError);
+ expect(()=>buildAttendanceCsv(['x'.repeat(121)],[])).toThrow(RangeError);
+});
