@@ -85,3 +85,7 @@ it('guards formulas hidden behind invisible Unicode prefix',()=>{
 it('rejects oversized report search input',()=>{
  expect(()=>searchReportRows([], 'x'.repeat(201))).toThrow(RangeError);
 });
+
+it('rejects unknown sort order',()=>{
+ expect(()=>sortReportRows([], 'random' as never)).toThrow(RangeError);
+});
