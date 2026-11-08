@@ -32,6 +32,7 @@ describe('AFAMS security regression contracts', () => {
     expect(worker).toContain("includes('no-store')");
     expect(worker).toContain("includes('private')");
     expect(worker).toContain("headers.has('set-cookie')");
+    expect(worker).toContain('url.search) return');
   });
 });
 
