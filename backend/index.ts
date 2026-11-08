@@ -10,6 +10,7 @@ import {
 import { geofenceDistanceMeters, isReliableGpsFix } from './geo';
 import { validGeofenceRadius } from './geofence-policy';
 import { isFreshGpsFix } from './gps-freshness';
+import { effectiveAccountRole } from './owner-role';
 const ADMIN_EMAILS = ['johncharlessarwi@gmail.com'];
 type Role = 'student' | 'lecturer' | 'class_rep' | 'administrator' | 'super_admin';
 type UserRecord = {
@@ -74,8 +75,7 @@ async function profileFor(user: {
     consistent: true,
   });
   if (saved) {
-    const ownerEmail = Boolean(user.email && ADMIN_EMAILS.includes(user.email.toLowerCase()));
-    return { ...saved, role: ownerEmail ? 'super_admin' : saved.role === 'super_admin' ? 'student' : saved.role };
+    return { ...saved, role: effectiveAccountRole(saved.role, user.email, ADMIN_EMAILS) };
   }
   const owner = Boolean(
     user.email && ADMIN_EMAILS.includes(user.email.toLowerCase())
@@ -93,7 +93,7 @@ async function profileFor(user: {
   const [raced] = await db.get<UserRecord>('afams_users', [user.userId], {
     consistent: true,
   });
-  if (raced) return raced;
+  if (raced) return { ...raced, role: effectiveAccountRole(raced.role, user.email, ADMIN_EMAILS) };
   throw new Error('Could not initialize account profile.');
 }
 async function roleGuard(ctx: any, allowed: Role[]) {
