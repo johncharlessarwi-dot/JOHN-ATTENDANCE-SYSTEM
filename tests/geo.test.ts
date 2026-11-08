@@ -18,3 +18,8 @@ it('measures geofence distances and fails closed for missing classroom coordinat
   expect(geofenceDistanceMeters(-3.35, 37.35, -3.36, 37.35)).toBeGreaterThan(1000);
   expect(Number.isNaN(geofenceDistanceMeters(-3.35, 37.35, NaN, 37.35))).toBe(true);
 });
+
+it('rejects unsafe accuracy thresholds',()=>{
+ expect(isReliableGpsFix(0,0,500,Infinity)).toBe(false);
+ expect(isReliableGpsFix(0,0,1,-1)).toBe(false);
+});
