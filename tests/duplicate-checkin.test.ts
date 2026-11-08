@@ -8,3 +8,7 @@ it('rejects malformed duplicate-check input',()=>{
  expect(()=>hasDuplicateCheckIn(null as never,{studentId:'x',sessionId:'s'})).toThrow(RangeError);
  expect(()=>hasDuplicateCheckIn([],{studentId:1 as never,sessionId:'s'})).toThrow(RangeError);
 });
+
+it('rejects malformed stored attendance identities',()=>{
+ expect(()=>hasDuplicateCheckIn([null as never],{studentId:'s',sessionId:'c'})).toThrow(RangeError);
+});
