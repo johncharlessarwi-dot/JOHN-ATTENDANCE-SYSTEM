@@ -30,7 +30,7 @@ self.addEventListener('fetch', event => {
     event.respondWith(
       fetch(request).then(response => {
         const copy = response.clone();
-        if (response.ok && response.type === 'basic' && !response.headers.get('cache-control')?.includes('no-store')) {
+        if (response.ok && response.type === 'basic' && !response.headers.get('cache-control')?.includes('no-store') && !response.headers.get('cache-control')?.includes('private') && !response.headers.has('set-cookie')) {
           event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.put('/', copy)));
         }
         return response;
