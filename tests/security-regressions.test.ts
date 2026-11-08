@@ -30,6 +30,8 @@ describe('AFAMS security regression contracts', () => {
     expect(worker).toContain("request.credentials === 'include'");
     expect(worker).toContain('if (!staticAsset) return');
     expect(worker).toContain("includes('no-store')");
+    expect(worker).toContain("includes('private')");
+    expect(worker).toContain("headers.has('set-cookie')");
   });
 });
 
