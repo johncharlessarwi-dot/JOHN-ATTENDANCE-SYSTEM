@@ -136,3 +136,7 @@ it('rejects nonfinite date-filter timestamps',()=>{
 it('rejects oversized report status filter values',()=>{
  expect(()=>filterReportStatus([{status:'present'}],'x'.repeat(201))).toThrow(RangeError);
 });
+
+it('rejects oversized course filter input',()=>{
+ expect(()=>filterReportCourse([{course:'CSC111'}],'x'.repeat(201))).toThrow(RangeError);
+});
