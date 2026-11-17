@@ -6,3 +6,4 @@ it('rejects coerced and noninteger count metadata',()=>{
  expect(validCheckInCounter('10')).toBe(false);
  expect(validCheckInCounter(1.5)).toBe(false);
 });
+it('rejects unrealistic request counts',()=>expect(validCheckInCounter(1001)).toBe(false));
