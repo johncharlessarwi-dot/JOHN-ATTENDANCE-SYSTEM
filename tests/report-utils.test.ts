@@ -112,3 +112,7 @@ it('rejects malformed report-search rows',()=>{
 it('rejects oversized report pagination arrays',()=>{
  expect(()=>paginateReportRows(Array.from({length:100001},(_,i)=>i),1)).toThrow(RangeError);
 });
+
+it('rejects malformed status filter rows',()=>{
+ expect(()=>filterReportStatus([null as never],'present')).toThrow(RangeError);
+});
