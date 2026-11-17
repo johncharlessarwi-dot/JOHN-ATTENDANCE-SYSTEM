@@ -128,3 +128,7 @@ it('rejects malformed GPS verification rows',()=>{
 it('rejects invalid report sorting timestamps',()=>{
  expect(()=>sortReportRows([{course:'CSC111',checkedInAt:NaN}],'newest')).toThrow(RangeError);
 });
+
+it('rejects nonfinite date-filter timestamps',()=>{
+ expect(()=>filterReportDates([{checkedInAt:Infinity}],'','')).toThrow(RangeError);
+});
