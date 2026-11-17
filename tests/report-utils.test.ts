@@ -116,3 +116,7 @@ it('rejects oversized report pagination arrays',()=>{
 it('rejects malformed status filter rows',()=>{
  expect(()=>filterReportStatus([null as never],'present')).toThrow(RangeError);
 });
+
+it('rejects malformed course filter rows',()=>{
+ expect(()=>filterReportCourse([{course:null as never}],'CSC111')).toThrow(RangeError);
+});
