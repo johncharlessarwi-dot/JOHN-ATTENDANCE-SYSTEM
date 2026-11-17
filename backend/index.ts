@@ -80,7 +80,7 @@ async function profileFor(user: {
     return { ...saved, role: effectiveAccountRole(saved.role, user.email, ADMIN_EMAILS) };
   }
   const owner = Boolean(
-    effectiveAccountRole('student',user.email,ADMIN_EMAILS)==='super_admin'
+    effectiveAccountRole('student',user.email,ADMIN_EMAILS) === 'super_admin'
   );
   const record: UserRecord = {
     userId: user.userId,
