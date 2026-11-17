@@ -38,6 +38,7 @@ export function filterReportDates<T extends { checkedInAt: number }>(rows: T[], 
 export type GpsFilter = 'all' | 'verified' | 'not-verified';
 export function filterReportGps<T extends { locationVerified: boolean }>(rows: T[], filter: GpsFilter): T[] {
   if (!['all','verified','not-verified'].includes(filter)) throw new RangeError('Unknown GPS filter');
+  if (!Array.isArray(rows) || rows.length > 100000 || rows.some(row => !row || typeof row.locationVerified !== 'boolean')) throw new RangeError('Invalid GPS verification rows');
   if (filter === 'all') return rows;
   return rows.filter(row => row.locationVerified === (filter === 'verified'));
 }
