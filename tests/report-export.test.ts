@@ -31,3 +31,7 @@ it('rejects blank attendance export columns',()=>{
 it('rejects repeated CSV column labels',()=>{
  expect(()=>buildAttendanceCsv(['Student','student'],[['A','B']])).toThrow(RangeError);
 });
+
+it('accounts for CSV quotes and delimiters in output budget',()=>{
+ expect(()=>buildAttendanceCsv(['x'],Array.from({length:190},()=>['"'.repeat(27000)]))).toThrow(RangeError);
+});
