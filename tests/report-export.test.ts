@@ -33,5 +33,5 @@ it('rejects repeated CSV column labels',()=>{
 });
 
 it('accounts for CSV quotes and delimiters in output budget',()=>{
- expect(()=>buildAttendanceCsv(['x'],Array.from({length:190},()=>['"'.repeat(27000)]))).toThrow(RangeError);
+ expect(()=>buildAttendanceCsv(['x'],Array.from({length:100},()=>['"'.repeat(26000)]))).toThrow(RangeError);
 });
