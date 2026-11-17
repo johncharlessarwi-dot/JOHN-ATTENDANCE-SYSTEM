@@ -94,3 +94,7 @@ it('rejects non-finite report pagination',()=>{
  expect(()=>paginateReportRows([],Infinity)).toThrow(RangeError);
  expect(()=>paginateReportRows([],1,NaN)).toThrow(RangeError);
 });
+
+it('neutralizes formulas hidden behind Unicode word joiners',()=>{
+ expect(spreadsheetSafeText('\u2060=HYPERLINK("https://evil.example")').startsWith("'")).toBe(true);
+});
