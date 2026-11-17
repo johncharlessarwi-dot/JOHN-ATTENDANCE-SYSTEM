@@ -10,3 +10,7 @@ it('rejects negative, fractional and unsafe timestamps', () => {
   expect(isFreshGpsFix(1000, -1)).toBe(false);
   expect(isFreshGpsFix(1000, 1000.5)).toBe(false);
 });
+
+it('rejects epoch-zero GPS timestamps',()=>{
+ expect(isFreshGpsFix(0,10000)).toBe(false);
+});
