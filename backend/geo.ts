@@ -3,7 +3,7 @@ export function isReliableGpsFix(latitude: number, longitude: number, accuracy: 
   return Number.isFinite(maxAccuracyMeters) && maxAccuracyMeters >= 1 && maxAccuracyMeters <= 1000
     && Number.isFinite(latitude) && latitude >= -90 && latitude <= 90
     && Number.isFinite(longitude) && longitude >= -180 && longitude <= 180
-    && Number.isFinite(accuracy) && accuracy >= 0 && accuracy <= maxAccuracyMeters;
+    && Number.isFinite(accuracy) && !Object.is(accuracy, -0) && accuracy >= 0 && accuracy <= maxAccuracyMeters;
 }
 
 export function geofenceDistanceMeters(fromLat: number, fromLon: number, toLat: number, toLon: number): number {
