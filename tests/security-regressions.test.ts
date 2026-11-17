@@ -65,6 +65,7 @@ describe('attendance privacy and abuse prevention', () => {
 describe('owner role and error disclosure hardening', () => {
   it('ties super-admin to authenticated allowlisted email', () => {
     expect(api).toContain("effectiveAccountRole(saved.role, user.email, ADMIN_EMAILS)");
+    expect(api).toContain("effectiveAccountRole('student',user.email,ADMIN_EMAILS)==='super_admin'");
     expect(api).toContain("effectiveAccountRole(raced.role, user.email, ADMIN_EMAILS)");
   });
   it('returns generic errors instead of upstream exception messages', () => {
