@@ -46,6 +46,7 @@ export function filterReportGps<T extends { locationVerified: boolean }>(rows: T
 export type ReportSort = 'newest' | 'oldest' | 'course';
 export function sortReportRows<T extends { checkedInAt: number; course: string }>(rows: T[], sort: ReportSort): T[] {
   if (!['newest', 'oldest', 'course'].includes(sort)) throw new RangeError('Unknown report sort');
+  if (!Array.isArray(rows) || rows.length > 100000 || rows.some(row => !row || typeof row.course !== 'string' || !Number.isSafeInteger(row.checkedInAt) || row.checkedInAt < 0)) throw new RangeError('Invalid report sorting rows');
   return [...rows].sort((a, b) => sort === 'course'
     ? a.course.localeCompare(b.course) || b.checkedInAt - a.checkedInAt
     : sort === 'oldest' ? a.checkedInAt - b.checkedInAt : b.checkedInAt - a.checkedInAt);
