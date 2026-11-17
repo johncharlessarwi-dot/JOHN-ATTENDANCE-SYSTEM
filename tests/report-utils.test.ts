@@ -132,3 +132,7 @@ it('rejects invalid report sorting timestamps',()=>{
 it('rejects nonfinite date-filter timestamps',()=>{
  expect(()=>filterReportDates([{checkedInAt:Infinity}],'','')).toThrow(RangeError);
 });
+
+it('rejects oversized report status filter values',()=>{
+ expect(()=>filterReportStatus([{status:'present'}],'x'.repeat(201))).toThrow(RangeError);
+});
