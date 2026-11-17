@@ -124,3 +124,7 @@ it('rejects malformed course filter rows',()=>{
 it('rejects malformed GPS verification rows',()=>{
  expect(()=>filterReportGps([{locationVerified:'yes' as never}],'verified')).toThrow(RangeError);
 });
+
+it('rejects invalid report sorting timestamps',()=>{
+ expect(()=>sortReportRows([{course:'CSC111',checkedInAt:NaN}],'newest')).toThrow(RangeError);
+});
