@@ -15,3 +15,7 @@ it('rejects unsafe or oversized CSV header labels',()=>{
 it('rejects oversized CSV cell payloads',()=>{
  expect(()=>buildAttendanceCsv(['student'],[['x'.repeat(32768)]])).toThrow(RangeError);
 });
+
+it('rejects exports above the 20k row cap',()=>{
+ expect(()=>buildAttendanceCsv(['x'],Array.from({length:20001},()=>['a']))).toThrow(RangeError);
+});
