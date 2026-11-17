@@ -98,3 +98,8 @@ it('rejects non-finite report pagination',()=>{
 it('neutralizes formulas hidden behind Unicode word joiners',()=>{
  expect(spreadsheetSafeText('\u2060=HYPERLINK("https://evil.example")').startsWith("'")).toBe(true);
 });
+
+it('neutralizes bidirectional marks ahead of formula cells',()=>{
+ expect(spreadsheetSafeText('\u200F@SUM(1)').startsWith("'")).toBe(true);
+ expect(spreadsheetSafeText('\u202E+1+1').startsWith("'")).toBe(true);
+});
