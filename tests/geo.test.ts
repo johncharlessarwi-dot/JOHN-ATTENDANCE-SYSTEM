@@ -23,3 +23,7 @@ it('rejects unsafe accuracy thresholds',()=>{
  expect(isReliableGpsFix(0,0,500,Infinity)).toBe(false);
  expect(isReliableGpsFix(0,0,1,-1)).toBe(false);
 });
+
+it('rejects negative-zero location accuracy',()=>{
+ expect(isReliableGpsFix(0,0,-0)).toBe(false);
+});
