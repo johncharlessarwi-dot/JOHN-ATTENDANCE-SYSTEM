@@ -149,3 +149,7 @@ it('rejects fractional page indexes and size',()=>{
  expect(()=>paginateReportRows([1,2,3],1.5)).toThrow(RangeError);
  expect(()=>paginateReportRows([1,2,3],1,2.5)).toThrow(RangeError);
 });
+
+it('preserves conventional course searches after normalization',()=>{
+ expect(searchReportRows([{course:'CSC 125',studentId:'T002',venue:'Lab 2'}],'csc 125')).toHaveLength(1);
+});
