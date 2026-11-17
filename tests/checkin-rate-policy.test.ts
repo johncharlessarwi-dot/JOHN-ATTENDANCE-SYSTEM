@@ -12,3 +12,7 @@ it('rejects nonnumeric or malformed counter timestamps',()=>{
  expect(checkInWindowActive('1000',100000)).toBe(false);
  expect(checkInWindowActive(NaN,100000)).toBe(false);
 });
+
+it('expires windows after sixty seconds',()=>{
+ expect(checkInWindowActive(40000,100000)).toBe(false);
+});
