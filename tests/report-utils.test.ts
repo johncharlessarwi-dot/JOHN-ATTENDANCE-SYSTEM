@@ -103,3 +103,8 @@ it('neutralizes bidirectional marks ahead of formula cells',()=>{
  expect(spreadsheetSafeText('\u200F@SUM(1)').startsWith("'")).toBe(true);
  expect(spreadsheetSafeText('\u202E+1+1').startsWith("'")).toBe(true);
 });
+
+it('rejects malformed report-search rows',()=>{
+ expect(()=>searchReportRows([null as never], 'a')).toThrow(RangeError);
+ expect(()=>searchReportRows([{course:'CSC',studentId:'T001',venue:42 as never}], 'a')).toThrow(RangeError);
+});
