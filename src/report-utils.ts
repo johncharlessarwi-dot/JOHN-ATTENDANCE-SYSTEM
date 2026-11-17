@@ -11,6 +11,7 @@ export function csvCell(value: unknown): string {
 
 export function searchReportRows<T extends { course: string; studentId: string; venue: string }>(rows: T[], query: string): T[] {
   if (typeof query !== 'string' || query.length > 200) throw new RangeError('Invalid report search');
+  if (!Array.isArray(rows) || rows.length > 100000 || rows.some(row => !row || typeof row.course !== 'string' || typeof row.studentId !== 'string' || typeof row.venue !== 'string')) throw new RangeError('Invalid report records');
   const term = query.trim().toLocaleLowerCase();
   if (!term) return rows;
   return rows.filter(row => [row.course, row.studentId, row.venue].some(value => value.toLocaleLowerCase().includes(term)));
