@@ -23,6 +23,7 @@ export function filterReportStatus<T extends { status: string }>(rows: T[], stat
 }
 
 export function filterReportCourse<T extends { course: string }>(rows: T[], course: string): T[] {
+  if (!Array.isArray(rows) || rows.length > 100000 || rows.some(row => !row || typeof row.course !== 'string')) throw new RangeError('Invalid course report rows');
   return course ? rows.filter(row => row.course === course) : rows;
 }
 
