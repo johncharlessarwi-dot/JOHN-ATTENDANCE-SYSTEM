@@ -6,3 +6,8 @@ it('rejects ambiguous, malformed and coercible codes',()=>{
  expect(normalizeSessionCode('A B C D')).toBeNull();
  expect(normalizeSessionCode(123456)).toBeNull();
 });
+
+it('rejects zero and short session codes',()=>{
+ expect(normalizeSessionCode('000000')).toBeNull();
+ expect(normalizeSessionCode('12345')).toBeNull();
+});
