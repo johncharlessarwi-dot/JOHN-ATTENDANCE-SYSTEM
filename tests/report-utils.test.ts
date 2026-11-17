@@ -140,3 +140,7 @@ it('rejects oversized report status filter values',()=>{
 it('rejects oversized course filter input',()=>{
  expect(()=>filterReportCourse([{course:'CSC111'}],'x'.repeat(201))).toThrow(RangeError);
 });
+
+it('normalizes fullwidth Unicode in course searches',()=>{
+ expect(searchReportRows([{course:'CSC111',studentId:'T001',venue:'Lab'}], 'ＣＳＣ１１１')).toHaveLength(1);
+});
