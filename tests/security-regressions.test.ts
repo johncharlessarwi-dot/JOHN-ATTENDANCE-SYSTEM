@@ -7,6 +7,7 @@ const worker = readFileSync(new URL('../public/service-worker.js', import.meta.u
 describe('AFAMS security regression contracts', () => {
   it('enforces real role strings, not coerced objects', () => {
     expect(api).toContain("typeof v === 'string'");
+    expect(api).toContain('\\u200B-\\u200F');
     expect(api).not.toContain('includes(String(v))');
   });
   it('blocks owner demotion and staff attendance check-in', () => {
