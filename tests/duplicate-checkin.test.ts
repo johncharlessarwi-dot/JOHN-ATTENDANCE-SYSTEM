@@ -21,3 +21,7 @@ it('rejects oversized attendance identities',()=>{
 it('rejects oversized stored attendance identity fields',()=>{
  expect(()=>hasDuplicateCheckIn([{studentId:'a'.repeat(129),sessionId:'s'}],{studentId:'a',sessionId:'s'})).toThrow(RangeError);
 });
+
+it('rejects blank identities in stored check-in history',()=>{
+ expect(()=>hasDuplicateCheckIn([{studentId:' ',sessionId:'session'}],{studentId:'a',sessionId:'session'})).toThrow(RangeError);
+});
