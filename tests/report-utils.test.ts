@@ -144,3 +144,8 @@ it('rejects oversized course filter input',()=>{
 it('normalizes fullwidth Unicode in course searches',()=>{
  expect(searchReportRows([{course:'CSC111',studentId:'T001',venue:'Lab'}], 'ＣＳＣ１１１')).toHaveLength(1);
 });
+
+it('rejects fractional page indexes and size',()=>{
+ expect(()=>paginateReportRows([1,2,3],1.5)).toThrow(RangeError);
+ expect(()=>paginateReportRows([1,2,3],1,2.5)).toThrow(RangeError);
+});
