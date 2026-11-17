@@ -108,3 +108,7 @@ it('rejects malformed report-search rows',()=>{
  expect(()=>searchReportRows([null as never], 'a')).toThrow(RangeError);
  expect(()=>searchReportRows([{course:'CSC',studentId:'T001',venue:42 as never}], 'a')).toThrow(RangeError);
 });
+
+it('rejects oversized report pagination arrays',()=>{
+ expect(()=>paginateReportRows(Array.from({length:100001},(_,i)=>i),1)).toThrow(RangeError);
+});
