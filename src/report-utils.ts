@@ -18,6 +18,7 @@ export function searchReportRows<T extends { course: string; studentId: string; 
 }
 
 export function filterReportStatus<T extends { status: string }>(rows: T[], status: string): T[] {
+  if (!Array.isArray(rows) || rows.length > 100000 || rows.some(row => !row || typeof row.status !== 'string')) throw new RangeError('Invalid status report rows');
   return status ? rows.filter(row => row.status === status) : rows;
 }
 
