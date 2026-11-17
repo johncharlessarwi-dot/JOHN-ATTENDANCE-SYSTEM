@@ -12,3 +12,8 @@ it('rejects malformed duplicate-check input',()=>{
 it('rejects malformed stored attendance identities',()=>{
  expect(()=>hasDuplicateCheckIn([null as never],{studentId:'s',sessionId:'c'})).toThrow(RangeError);
 });
+
+it('rejects oversized attendance identities',()=>{
+ expect(()=>hasDuplicateCheckIn([], {studentId:'x'.repeat(129),sessionId:'session'})).toThrow(RangeError);
+ expect(()=>hasDuplicateCheckIn([], {studentId:'student',sessionId:'s'.repeat(129)})).toThrow(RangeError);
+});
