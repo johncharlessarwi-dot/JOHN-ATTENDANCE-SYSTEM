@@ -6,3 +6,7 @@ it('rejects unsafe identifiers', () => { expect(() => normalizeStudentCode('../'
 it('rejects ambiguous registration codes with internal spaces',()=>{
  expect(()=>normalizeStudentCode('T/DEG/2025/ 0817')).toThrow(RangeError);
 });
+
+it('limits registration number length',()=>{
+ expect(()=>normalizeStudentCode('A'.repeat(41))).toThrow(RangeError);
+});
