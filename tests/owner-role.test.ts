@@ -5,3 +5,7 @@ describe('owner role hardening',()=>{
  it('keeps allowlisted owner regardless of prior role',()=>expect(effectiveAccountRole('student','OWNER@example.com',['owner@example.com'])).toBe('super_admin'));
  it('rejects undefined owner email',()=>expect(effectiveAccountRole('super_admin',undefined,['owner@example.com'])).toBe('student'));
 });
+
+it('normalizes legitimate administrator email capitalization and spaces',()=>{
+ expect(effectiveAccountRole('student','OWNER@EXAMPLE.COM',[' owner@example.com '])).toBe('super_admin');
+});
