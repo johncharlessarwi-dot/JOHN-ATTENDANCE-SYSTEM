@@ -15,3 +15,8 @@ it('rejects registration codes made entirely of separators',()=>{
  expect(()=>normalizeStudentCode('___')).toThrow(RangeError);
  expect(()=>normalizeStudentCode('//-')).toThrow(RangeError);
 });
+
+it('rejects codes with unsafe leading or trailing separators',()=>{
+ expect(()=>normalizeStudentCode('/ABC')).toThrow(RangeError);
+ expect(()=>normalizeStudentCode('ABC/')).toThrow(RangeError);
+});
