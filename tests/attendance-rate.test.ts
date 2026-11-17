@@ -15,3 +15,7 @@ it('rejects fractional attendance counts',()=>{
 it('rejects unsafe attendance integer values',()=>{
  expect(()=>attendanceRate(1,Number.MAX_SAFE_INTEGER+1)).toThrow(RangeError);
 });
+
+it('computes large attendance percentages without multiplying unsafe integers',()=>{
+ expect(attendanceRate(Number.MAX_SAFE_INTEGER,Number.MAX_SAFE_INTEGER)).toBe(100);
+});
