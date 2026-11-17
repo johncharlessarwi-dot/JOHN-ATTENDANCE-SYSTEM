@@ -23,3 +23,7 @@ it('rejects exports above the 20k row cap',()=>{
 it('rejects pathological CSV payload sizes before serialization',()=>{
  expect(()=>buildAttendanceCsv(['x'],Array.from({length:200},()=>['x'.repeat(30000)]))).toThrow(RangeError);
 });
+
+it('rejects blank attendance export columns',()=>{
+ expect(()=>buildAttendanceCsv(['   '],[])).toThrow(RangeError);
+});
