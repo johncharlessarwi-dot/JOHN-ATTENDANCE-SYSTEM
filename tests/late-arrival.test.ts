@@ -7,3 +7,8 @@ it('rejects fractional attendance timestamps while allowing pre-epoch values',()
  expect(latenessMinutes(-1,100)).toBe(1);
  expect(()=>latenessMinutes(1.5,200)).toThrow(RangeError);
 });
+
+it('rejects negative attendance timestamps',()=>{
+ expect(()=>latenessMinutes(-1, 1000)).toThrow(RangeError);
+ expect(()=>latenessMinutes(1000, -1)).toThrow(RangeError);
+});
