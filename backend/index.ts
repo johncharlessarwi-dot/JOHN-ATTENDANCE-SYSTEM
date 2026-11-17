@@ -233,13 +233,13 @@ export const handler = router({
     async ctx => {
       const b = (ctx.body || {}) as Record<string, unknown>,
         code = normalizeSessionCode(b.code);
-      if (!code)
-        return error('Enter the six-character session code.', 400);
       const p = await profileFor(ctx.user!);
       if (p.role !== 'student' && p.role !== 'class_rep')
         return error('Only learners may check in to attendance sessions.', 403);
       if (!(await allowCheckInAttempt(p.userId)))
         return error('Too many attendance attempts. Wait one minute and try again.', 429);
+      if (!code)
+        return error('Enter the six-character session code.', 400);
       const page = await db.list<SessionRecord & { id: string }>('afams_sessions', { limit: 100 });
       const s = page.items.find(x => x.code === code);
       if (!s) return error('Session code was not found.', 404);
