@@ -52,7 +52,7 @@ type AttendanceRecord = {
 };
 const now = () => Date.now();
 const clean = (v: unknown, n = 120) =>
-  typeof v === 'string' ? v.replace(/[\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g, '').trim().slice(0, n) : '';
+  typeof v === 'string' ? v.replace(/[\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069\u200B-\u200F\u2060]/g, '').trim().slice(0, n) : '';
 const timeRangesOverlap = (startA: string, endA: string, startB: string, endB: string): boolean =>
   startA < endB && startB < endA;
 const validIsoDate = (value: string): boolean => {
