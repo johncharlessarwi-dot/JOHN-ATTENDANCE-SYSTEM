@@ -10,3 +10,8 @@ it('rejects ambiguous registration codes with internal spaces',()=>{
 it('limits registration number length',()=>{
  expect(()=>normalizeStudentCode('A'.repeat(41))).toThrow(RangeError);
 });
+
+it('rejects registration codes made entirely of separators',()=>{
+ expect(()=>normalizeStudentCode('___')).toThrow(RangeError);
+ expect(()=>normalizeStudentCode('//-')).toThrow(RangeError);
+});
