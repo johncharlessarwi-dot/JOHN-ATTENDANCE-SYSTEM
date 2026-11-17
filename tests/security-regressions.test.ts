@@ -44,6 +44,7 @@ describe('attendance privacy and abuse prevention', () => {
   });
   it('throttles repeated code guesses using atomic account windows', () => {
     expect(api).toContain('allowCheckInAttempt(p.userId)');
+    expect(api).toContain('checkInWindowActive(previous.windowStartedAt, timestamp)');
     expect(api).toContain("'afams_request_limits'");
     expect(api).toContain("if: { attempts: previous.attempts }");
     expect(api).toContain('429');
