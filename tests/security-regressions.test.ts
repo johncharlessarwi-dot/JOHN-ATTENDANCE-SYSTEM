@@ -47,6 +47,7 @@ describe('attendance privacy and abuse prevention', () => {
     expect(api).toContain('allowCheckInAttempt(p.userId)');
     expect(api.indexOf('allowCheckInAttempt(p.userId)', api.indexOf("'POST /api/check-in'"))).toBeLessThan(api.indexOf("if (!code)",api.indexOf("'POST /api/check-in'")));
     expect(api).toContain('checkInWindowActive(previous.windowStartedAt, timestamp)');
+    expect(api).toContain('validCheckInCounter(previous.attempts)');
     expect(api).toContain("'afams_request_limits'");
     expect(api).toContain("if: { attempts: previous.attempts }");
     expect(api).toContain('429');
