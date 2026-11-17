@@ -12,3 +12,7 @@ it('rejects negative attendance timestamps',()=>{
  expect(()=>latenessMinutes(-1, 1000)).toThrow(RangeError);
  expect(()=>latenessMinutes(1000, -1)).toThrow(RangeError);
 });
+
+it('rejects fractional grace periods',()=>{
+ expect(()=>latenessMinutes(0,1000,0.5)).toThrow(RangeError);
+});
