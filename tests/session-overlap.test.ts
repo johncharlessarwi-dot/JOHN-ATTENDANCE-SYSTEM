@@ -11,3 +11,7 @@ it('rejects unsafe numeric session timestamps',()=>{
 it('rejects session windows whose end precedes start',()=>{
  expect(()=>sessionsOverlap({startsAt:200,endsAt:100},{startsAt:300,endsAt:400})).toThrow(RangeError);
 });
+
+it('rejects non-finite session boundaries',()=>{
+ expect(()=>sessionsOverlap({startsAt:NaN,endsAt:10},{startsAt:0,endsAt:10})).toThrow(RangeError);
+});
