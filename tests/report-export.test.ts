@@ -19,3 +19,7 @@ it('rejects oversized CSV cell payloads',()=>{
 it('rejects exports above the 20k row cap',()=>{
  expect(()=>buildAttendanceCsv(['x'],Array.from({length:20001},()=>['a']))).toThrow(RangeError);
 });
+
+it('rejects pathological CSV payload sizes before serialization',()=>{
+ expect(()=>buildAttendanceCsv(['x'],Array.from({length:200},()=>['x'.repeat(30000)]))).toThrow(RangeError);
+});
