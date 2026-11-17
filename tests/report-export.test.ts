@@ -27,3 +27,7 @@ it('rejects pathological CSV payload sizes before serialization',()=>{
 it('rejects blank attendance export columns',()=>{
  expect(()=>buildAttendanceCsv(['   '],[])).toThrow(RangeError);
 });
+
+it('rejects repeated CSV column labels',()=>{
+ expect(()=>buildAttendanceCsv(['Student','student'],[['A','B']])).toThrow(RangeError);
+});
