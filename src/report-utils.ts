@@ -28,6 +28,7 @@ export function filterReportCourse<T extends { course: string }>(rows: T[], cour
 }
 
 export function filterReportDates<T extends { checkedInAt: number }>(rows: T[], from: string, to: string): T[] {
+  if (!Array.isArray(rows) || rows.length > 100000 || rows.some(row => !row || !Number.isSafeInteger(row.checkedInAt) || row.checkedInAt < 0)) throw new RangeError('Invalid date report rows');
   const start = from ? new Date(`${from}T00:00:00`).getTime() : Number.NEGATIVE_INFINITY;
   const end = to ? new Date(`${to}T23:59:59.999`).getTime() : Number.POSITIVE_INFINITY;
   const validDay = (value: string) => !value || /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
