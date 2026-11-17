@@ -13,6 +13,7 @@ import { isFreshGpsFix } from './gps-freshness';
 import { effectiveAccountRole } from './owner-role';
 import { normalizeSessionCode } from './session-code';
 import { checkInWindowActive } from './checkin-rate-policy';
+import { validCheckInCounter } from './checkin-counter-policy';
 const ADMIN_EMAILS = ['johncharlessarwi@gmail.com'];
 type Role = 'student' | 'lecturer' | 'class_rep' | 'administrator' | 'super_admin';
 type UserRecord = {
@@ -119,6 +120,7 @@ async function allowCheckInAttempt(userId: string): Promise<boolean> {
     const [created] = await db.tx.add('afams_request_limits', [{ id, windowStartedAt: timestamp, attempts: 1 }]);
     return Boolean(created);
   }
+  if (!validCheckInCounter(previous.attempts)) return false;
   const inWindow = checkInWindowActive(previous.windowStartedAt, timestamp);
   if (inWindow && Number(previous.attempts) >= 10) return false;
   const [updated] = await db.tx.update('afams_request_limits', [{
