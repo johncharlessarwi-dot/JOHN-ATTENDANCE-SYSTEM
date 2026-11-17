@@ -9,3 +9,7 @@ describe('owner role hardening',()=>{
 it('normalizes legitimate administrator email capitalization and spaces',()=>{
  expect(effectiveAccountRole('student','OWNER@EXAMPLE.COM',[' owner@example.com '])).toBe('super_admin');
 });
+
+it('never elevates a blank authenticated email',()=>{
+ expect(effectiveAccountRole('student',' ',[' '])).toBe('student');
+});
