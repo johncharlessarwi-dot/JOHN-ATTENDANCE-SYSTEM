@@ -120,3 +120,7 @@ it('rejects malformed status filter rows',()=>{
 it('rejects malformed course filter rows',()=>{
  expect(()=>filterReportCourse([{course:null as never}],'CSC111')).toThrow(RangeError);
 });
+
+it('rejects malformed GPS verification rows',()=>{
+ expect(()=>filterReportGps([{locationVerified:'yes' as never}],'verified')).toThrow(RangeError);
+});
