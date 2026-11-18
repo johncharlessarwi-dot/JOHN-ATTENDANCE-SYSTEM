@@ -13,3 +13,11 @@ it('normalizes legitimate administrator email capitalization and spaces',()=>{
 it('never elevates a blank authenticated email',()=>{
  expect(effectiveAccountRole('student',' ',[' '])).toBe('student');
 });
+
+it.each([undefined, null, 'former_role', 'ADMINISTRATOR', ['administrator']])('limits an unrecognized stored role (%j) to student access', role => {
+  expect(effectiveAccountRole(role, 'learner@example.test', ['owner@example.test'])).toBe('student');
+});
+
+it.each(['student', 'lecturer', 'class_rep', 'administrator'])('preserves a recognized non-owner role (%s)', role => {
+  expect(effectiveAccountRole(role, 'member@example.test', ['owner@example.test'])).toBe(role);
+});
