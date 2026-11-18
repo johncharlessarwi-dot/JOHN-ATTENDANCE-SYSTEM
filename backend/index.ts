@@ -514,7 +514,7 @@ export const handler = router({
         if: { role: 'student' },
       }], { patch: true });
       if (!updatedProfile) return error('Request was saved but profile status could not be updated. Contact an administrator.', 503);
-      await audit(p.userId, 'Student identity submitted', registrationNumber);
+      await audit(p.userId, 'Student identity submitted', id);
       return json({ ok: true, status: 'pending', message: 'Your registration details have been submitted for institutional verification.' }, 201);
     },
   ],
@@ -594,7 +594,7 @@ export const handler = router({
         if: { status: 'pending' },
       }], { patch: true });
       if (!updatedRequest) return error('Request review changed concurrently. Refresh and reconcile the student profile.', 409);
-      await audit(p.userId, 'Student identity ' + decision, request.registrationNumber + ' · ' + request.userId);
+      await audit(p.userId, 'Student identity ' + decision, id);
       return json({ ok: true, status: decision });
     },
   ],
