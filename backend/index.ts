@@ -56,11 +56,24 @@ const clean = (v: unknown, n = 120) =>
   typeof v === 'string' ? v.replace(/[\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069\u200B-\u200F\u2060]/g, '').trim().slice(0, n) : '';
 const timeRangesOverlap = (startA: string, endA: string, startB: string, endB: string): boolean =>
   startA < endB && startB < endA;
-const validIsoDate = (value: string): boolean => {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+const validIsoDate = (value: unknown): value is string => {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const parsed = new Date(value + 'T00:00:00.000Z');
   return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 };
+const academicTables = {
+  faculties: 'afams_faculties',
+  departments: 'afams_departments',
+  programmes: 'afams_programmes',
+  courses: 'afams_courses',
+  semesters: 'afams_semesters',
+  academicYears: 'afams_academic_years',
+  campuses: 'afams_campuses',
+  classrooms: 'afams_classrooms',
+  enrollments: 'afams_enrollments',
+} as const;
+const isAcademicKind = (kind: unknown): kind is keyof typeof academicTables =>
+  typeof kind === 'string' && Object.prototype.hasOwnProperty.call(academicTables, kind);
 const makeCode = () => {
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   const bytes = new Uint8Array(6);
@@ -613,22 +626,11 @@ export const handler = router({
       const denied = await roleGuard(ctx, ['administrator', 'super_admin']);
       if (denied) return denied;
       const b = (ctx.body || {}) as Record<string, unknown>;
-      const kind = clean(b.kind, 24);
+      const kind = b.kind;
       const name = clean(b.name, 120);
+      if (!isAcademicKind(kind)) return error('Unsupported academic record type.', 400);
+      const table = academicTables[kind];
       const p = await profileFor(ctx.user!);
-      const tables: Record<string, string> = {
-        faculties: 'afams_faculties',
-        departments: 'afams_departments',
-        programmes: 'afams_programmes',
-        courses: 'afams_courses',
-        semesters: 'afams_semesters',
-        academicYears: 'afams_academic_years',
-        campuses: 'afams_campuses',
-        classrooms: 'afams_classrooms',
-        enrollments: 'afams_enrollments',
-      };
-      const table = tables[kind];
-      if (!table) return error('Unsupported academic record type.', 400);
       if (kind !== 'enrollments' && name.length < 2)
         return error('Enter a valid name (at least 2 characters).', 400);
       const id = 'ac_' + crypto.randomUUID().replace(/-/g, '');
@@ -657,8 +659,7 @@ export const handler = router({
           return error('Course credits must be a whole number between 0 and 60.', 400);
         Object.assign(record, { name, code: clean(b.code, 20).toUpperCase(), programmeId, credits });
       } else if (kind === 'academicYears') {
-        const startDate = clean(b.startDate, 10);
-        const endDate = clean(b.endDate, 10);
+        const { startDate, endDate } = b;
         if (!validIsoDate(startDate) || !validIsoDate(endDate) || endDate <= startDate)
           return error('Provide valid academic-year start and end dates.', 400);
         const existingYears = await db.list<any>('afams_academic_years', { limit: 200 });
@@ -677,13 +678,12 @@ export const handler = router({
       } else if (kind === 'classrooms') {
         const campusId = clean(b.campusId, 100);
         const [campus] = await db.get<any>('afams_campuses', [campusId]);
-        const capacity = Number(b.capacity);
+        const capacity = b.capacity;
         if (!campus || campus.status !== 'active') return error('Select an active campus.', 400);
-        if (!Number.isInteger(capacity) || capacity < 1 || capacity > 5000) return error('Classroom capacity must be between 1 and 5000.', 400);
+        if (typeof capacity !== 'number' || !Number.isSafeInteger(capacity) || capacity < 1 || capacity > 5000) return error('Classroom capacity must be a whole number between 1 and 5000.', 400);
         Object.assign(record, { name, campusId, building: clean(b.building, 100), roomCode: clean(b.roomCode, 40).toUpperCase(), capacity, status: 'active' });
       } else if (kind === 'semesters') {
-        const startDate = clean(b.startDate, 10);
-        const endDate = clean(b.endDate, 10);
+        const { startDate, endDate } = b;
         if (!validIsoDate(startDate) || !validIsoDate(endDate) || endDate <= startDate)
           return error('Provide valid semester start and end dates.', 400);
         Object.assign(record, { name, academicYear: clean(b.academicYear, 20), startDate, endDate });
@@ -713,21 +713,10 @@ export const handler = router({
     async ctx => {
       const denied = await roleGuard(ctx, ['administrator', 'super_admin']);
       if (denied) return denied;
-      const tables: Record<string, string> = {
-        faculties: 'afams_faculties',
-        departments: 'afams_departments',
-        programmes: 'afams_programmes',
-        courses: 'afams_courses',
-        semesters: 'afams_semesters',
-        academicYears: 'afams_academic_years',
-        campuses: 'afams_campuses',
-        classrooms: 'afams_classrooms',
-        enrollments: 'afams_enrollments',
-      };
-      const table = tables[clean(ctx.params.kind, 24)];
+      const kind = ctx.params.kind;
       const id = clean(ctx.params.id, 160);
-      if (!table || !id) return error('Invalid academic record.', 400);
-      const [removed] = await db.delete(table, [id]);
+      if (!isAcademicKind(kind) || !id) return error('Invalid academic record.', 400);
+      const [removed] = await db.delete(academicTables[kind], [id]);
       if (!removed) return error('Record was not found or could not be removed.', 404);
       const p = await profileFor(ctx.user!);
       await audit(p.userId, 'Academic record deleted', ctx.params.kind + ' · ' + id);
