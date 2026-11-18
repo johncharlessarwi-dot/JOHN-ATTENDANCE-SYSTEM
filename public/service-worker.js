@@ -1,21 +1,39 @@
-const CACHE_NAME = 'afams-shell-v1';
+const CACHE_NAME = 'afams-shell-v2';
 const SHELL_URLS = ['/', '/manifest.json'];
+const BUILD_ASSET = /^\/assets\/[\w.-]+-[\w-]{8,}\.(?:js|css)$/;
+
+async function fetchPublicFile(cache, path) {
+  const response = await fetch(new URL(path, self.location.origin), {
+    credentials: 'omit',
+    redirect: 'error',
+    cache: 'no-store',
+  });
+  const cacheControl = (response.headers.get('cache-control') || '').toLowerCase();
+  const vary = (response.headers.get('vary') || '').toLowerCase().split(',').map(value => value.trim());
+  if (response.status === 200 && response.type === 'basic' && !response.redirected &&
+      !cacheControl.includes('no-store') && !cacheControl.includes('private') &&
+      !cacheControl.includes('no-cache') && !response.headers.has('set-cookie') &&
+      !vary.some(value => ['*', 'cookie', 'authorization'].includes(value))) {
+    await cache.put(path, response.clone()).catch(() => undefined);
+  }
+  return response;
+}
 
 self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(SHELL_URLS))
-  );
-  self.skipWaiting();
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    await Promise.allSettled(SHELL_URLS.map(path => fetchPublicFile(cache, path)));
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(keys => Promise.all(
-      keys.filter(key => key.startsWith('afams-shell-') && key !== CACHE_NAME)
-        .map(key => caches.delete(key))
-    ))
-  );
-  self.clients.claim();
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(key => key.startsWith('afams-shell-') && key !== CACHE_NAME)
+      .map(key => caches.delete(key)));
+    await self.clients.claim();
+  })());
 });
 
 self.addEventListener('fetch', event => {
@@ -23,35 +41,23 @@ self.addEventListener('fetch', event => {
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin || url.search) return;
-  // Academic APIs and authenticated data must never enter the shared browser Cache Storage.
-  if (url.pathname.startsWith('/api/') || request.headers.has('authorization') || request.credentials === 'include') return;
+  if (url.pathname === '/api' || url.pathname.startsWith('/api/') || request.headers.has('authorization')) return;
 
   if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request).then(response => {
-        const copy = response.clone();
-        if (response.ok && response.type === 'basic' && !response.headers.get('cache-control')?.includes('no-store') && !response.headers.get('cache-control')?.includes('private') && !response.headers.has('set-cookie')) {
-          event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.put('/', copy)));
-        }
-        return response;
-      }).catch(() => caches.match('/'))
-    );
+    if (url.pathname !== '/') return;
+    // Live navigation may include a session cookie; only the separately fetched public shell is cached.
+    event.respondWith(fetch(request).catch(async () => {
+      const cache = await caches.open(CACHE_NAME);
+      return (await cache.match('/')) || Response.error();
+    }));
     return;
   }
 
-  // Only immutable build assets and the public manifest are safe for offline reuse.
-  const staticAsset = url.pathname.startsWith('/assets/') || url.pathname === '/manifest.json';
+  if (request.credentials === 'include' || request.headers.has('range')) return;
+  const staticAsset = BUILD_ASSET.test(url.pathname) || url.pathname === '/manifest.json';
   if (!staticAsset) return;
-  event.respondWith(
-    caches.match(request).then(cached => {
-      const network = fetch(request).then(response => {
-        if (response.ok && response.type === 'basic' && !response.headers.get('cache-control')?.includes('no-store')) {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
-        }
-        return response;
-      });
-      return cached || network;
-    })
-  );
+  event.respondWith((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    return (await cache.match(url.pathname)) || fetchPublicFile(cache, url.pathname);
+  })());
 });
