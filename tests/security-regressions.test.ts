@@ -78,4 +78,11 @@ describe('owner role and error disclosure hardening', () => {
   it('requires current staff authorization to delete announcements', () => {
     expect(api).toContain('You do not have permission to delete announcements.');
   });
+  it('logs identity actions with request IDs, not registration numbers', () => {
+    const identityActions = api.match(/await audit\([^\n]*'Student identity [^\n]*/g);
+    expect(identityActions).toEqual([
+      "await audit(p.userId, 'Student identity submitted', id);",
+      "await audit(p.userId, 'Student identity ' + decision, id);",
+    ]);
+  });
 });

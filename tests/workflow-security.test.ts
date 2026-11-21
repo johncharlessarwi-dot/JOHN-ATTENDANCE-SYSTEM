@@ -12,3 +12,16 @@ describe('CI security contract',()=>{
   expect(workflow).toContain('npm ci');
  });
 });
+
+it('isolates Pages deployment credentials from the build job', () => {
+ const pages = readFileSync(new URL('../.github/workflows/pages.yml', import.meta.url), 'utf8');
+ const [build, deploy] = pages.split('\n  deploy:\n');
+ expect(build).toContain('\npermissions: {}\n');
+ expect(build).toContain('pages: read');
+ expect(build).toContain('persist-credentials: false');
+ expect(build).not.toMatch(/pages: write|id-token: write/);
+ expect(deploy).toContain('needs: build');
+ expect(deploy).toContain('pages: write');
+ expect(deploy).toContain('id-token: write');
+ expect(deploy).not.toContain('actions/checkout');
+});
