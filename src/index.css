@@ -1053,3 +1053,14 @@ code {
     height: 205px;
   }
 }
+
+@media (max-width: 740px) {
+  .sidebar {
+    visibility: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  .sidebar.show { visibility: visible; }
+  .sidebar > * { flex-shrink: 0; }
+}
