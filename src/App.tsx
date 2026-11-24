@@ -394,7 +394,7 @@ function App() {
   return (
     <div className="shell">
       {!online && <div className="offline-banner">Offline mode: cached app shell only. Sign-in, attendance check-in and API actions need an internet connection.</div>}
-      <aside className={'sidebar ' + (mobile ? 'show' : '')}>
+      <aside id="workspace-sidebar" className={'sidebar ' + (mobile ? 'show' : '')}>
         <div className="brand-row">
           <div className="brand">AF</div>
           <div>
@@ -402,6 +402,7 @@ function App() {
             <small>ACADEMIC INTELLIGENCE</small>
           </div>
           <button
+            aria-label="Close navigation"
             className="icon mobile-close"
             onClick={() => setMobile(false)}
           >
@@ -413,6 +414,7 @@ function App() {
           {nav.map(([label, Icon]: any) => (
             <button
               key={label}
+              aria-current={view === label ? "page" : undefined}
               className={'nav-item ' + (view === label ? 'active' : '')}
               onClick={() => {
                 setView(label);
@@ -432,7 +434,7 @@ function App() {
               <small>Access is monitored</small>
             </div>
           </div>
-          <button className="nav-item" onClick={() => setView('Settings')}>
+          <button className="nav-item" aria-current={view === 'Settings' ? 'page' : undefined} onClick={() => { setView('Settings'); setMobile(false); }}>
             <Settings size={18} />
             Settings
           </button>
@@ -450,11 +452,14 @@ function App() {
           </div>
         </div>
       </aside>
-      {mobile && <button className="scrim" onClick={() => setMobile(false)} />}
+      {mobile && <button aria-label="Close navigation" className="scrim" onClick={() => setMobile(false)} />}
       <main className="main">
         <header className="topbar">
           <div className="crumb">
             <button
+              aria-label="Open navigation"
+              aria-controls="workspace-sidebar"
+              aria-expanded={mobile}
               className="icon mobile-menu"
               onClick={() => setMobile(true)}
             >
